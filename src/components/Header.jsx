@@ -29,39 +29,80 @@ export default function Header() {
           </div>
 
           {/* Menu button right */}
-          <div>
-            <button
-              type="button"
-              aria-label="Menu"
-              onClick={() => setOpen(true)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setOpen(true) }}
-              className="w-[140px] h-[40px] rounded-full border-2 border-[#2699D6] text-[#2699D6] bg-transparent flex items-center justify-center hover:bg-[#2699D6]/10 transition cursor-pointer text-sm"
-            >
-              Menu
-            </button>
+          <div className="flex items-center">
+            {/* Desktop: rounded Menu button */}
+            <div className="hidden md:block">
+              <button
+                type="button"
+                aria-label="Menu"
+                onClick={() => setOpen(true)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setOpen(true) }}
+                className="w-[140px] h-[40px] rounded-full border-2 border-[#2699D6] text-[#2699D6] bg-transparent flex items-center justify-center hover:bg-[#2699D6]/10 transition cursor-pointer text-sm"
+              >
+                Menu
+              </button>
+            </div>
+
+            {/* Mobile: compact hamburger icon like attachment */}
+            <div className="md:hidden">
+              <button
+                type="button"
+                aria-label="Open menu"
+                onClick={() => setOpen(true)}
+                className="w-10 h-10 flex items-center justify-center"
+              >
+                <span className="sr-only">Open menu</span>
+                <div className="space-y-1">
+                  <span className="block w-6 h-0.5 bg-[#1E40AF] rounded"></span>
+                  <span className="block w-6 h-0.5 bg-[#1E40AF] rounded"></span>
+                  <span className="block w-6 h-0.5 bg-[#1E40AF] rounded"></span>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Overlay menu */}
       {open && (
-        <div className="fixed inset-0 z-[9998] flex pointer-events-auto">
-          {/* left: dim backdrop showing hero behind (if any) */}
-          <div className="w-1/2 hidden md:block bg-black/50" onClick={() => setOpen(false)} />
+        // Full-screen overlay for mobile and split for desktop
+        <div className="fixed inset-0 z-[9998]">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50 md:hidden" onClick={() => setOpen(false)} />
 
-          {/* right: menu panel */}
-          <div className="w-full md:w-1/2 bg-[#E4EDFF] p-8 md:p-12 relative pointer-events-auto">
-            <button type="button" onClick={() => setOpen(false)} className="absolute top-4 right-4 md:top-6 md:right-6 w-[140px] h-[40px] rounded-full border-2 border-[#2699D6] text-[#2699D6] bg-transparent flex items-center justify-center text-sm">
-              Mbyll
-            </button>
+          {/* Mobile: centered full-screen menu */}
+          <div className="md:hidden fixed inset-0 flex items-center justify-center">
+            <div className="bg-white w-full h-full p-8 flex flex-col items-center justify-center">
+              <button type="button" onClick={() => setOpen(false)} className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full border border-gray-200">
+                <span className="sr-only">Close</span>
+                <svg className="w-5 h-5 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18"></path><path d="M6 6l12 12"></path></svg>
+              </button>
 
-            <nav className="h-full flex flex-col justify-center items-start pl-6 md:pl-8">
-              {NAV.map((n) => (
-                <NavLink key={n.name} to={n.to} onClick={() => setOpen(false)} className="text-3xl md:text-4xl font-medium text-[#2699D6] leading-tight mb-6 md:mb-8">
-                  {n.name}
-                </NavLink>
-              ))}
-            </nav>
+              <nav className="flex flex-col items-center space-y-6">
+                {NAV.map((n) => (
+                  <NavLink key={n.name} to={n.to} onClick={() => setOpen(false)} className="text-2xl font-semibold text-[#2699D6]">
+                    {n.name}
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
+          </div>
+
+          {/* Desktop: split panel like before */}
+          <div className="hidden md:flex h-full">
+            <div className="w-1/2 bg-black/50" onClick={() => setOpen(false)} />
+            <div className="w-1/2 bg-[#E4EDFF] p-12 relative flex items-center">
+              <button type="button" onClick={() => setOpen(false)} className="absolute top-6 right-6 w-[140px] h-[40px] rounded-full border-2 border-[#2699D6] text-[#2699D6] bg-transparent flex items-center justify-center text-sm">
+                Mbyll
+              </button>
+              <nav className="w-full flex flex-col items-start pl-8">
+                {NAV.map((n) => (
+                  <NavLink key={n.name} to={n.to} onClick={() => setOpen(false)} className="text-4xl font-medium text-[#2699D6] mb-6">
+                    {n.name}
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
           </div>
         </div>
       )}
