@@ -1,9 +1,11 @@
 import React from 'react'
 
 export default function PageHero({ title, subtitle, ctaText, ctaHref, bg }) {
-  const bgImg = bg || 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop'
+  const bgImg = bg || '/Instagram_files/473136151_18033560417428513_1733372448230331900_n.jpg'
   return (
-    <section className="w-full" style={{ marginTop: '90px' }}>
+  // reduced top margin so header and hero sit closer
+  // Small gap to account for fixed header (72px) but keep content visually tight
+  <section className="w-full" style={{ marginTop: '8px' }}>
       <div className="relative w-full" style={{ height: '48vh' }}>
         <img src={bgImg} alt={title} className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/45" />

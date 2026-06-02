@@ -1,4 +1,6 @@
-import React from 'react'
+import React, { useState } from 'react'
+import RoomLightbox from './RoomLightbox'
+import ApartmentCard from './ApartmentCard'
 
 const rooms = [
   {
@@ -28,37 +30,49 @@ const rooms = [
 ]
 
 export default function Rooms() {
+  // organized image groups per room type
+  const groups = {
+    standard: Array.from({ length: 6 }).map((_, i) => `/apartment${i + 1}.jpeg`), // 1..6
+    deluxe: Array.from({ length: 7 }).map((_, i) => `/apartment${7 + i}.jpeg`),   // 7..13
+    premium: Array.from({ length: 6 }).map((_, i) => `/apartment${14 + i}.jpeg`), // 14..19
+  }
+
+  const [isOpen, setIsOpen] = useState(false)
+  const [currentImages, setCurrentImages] = useState(groups.standard)
+  const [startIndex, setStartIndex] = useState(0)
+  const [currentTitle, setCurrentTitle] = useState('')
+  const [currentDetails, setCurrentDetails] = useState(null)
+
+  function openGalleryForRoom(roomId, index = 0, title = '', details = null) {
+    const imgs = groups[roomId] || groups.standard
+    setCurrentImages(imgs)
+    setStartIndex(index)
+    setCurrentTitle(title)
+    setCurrentDetails(details)
+    setIsOpen(true)
+  }
+
+  function closeGallery() {
+    setIsOpen(false)
+  }
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-10">
-        <h2 className="text-2xl font-semibold">Dhomat dhe Apartamentet</h2>
-        <p className="mt-2 text-gray-600">Zgjidhni nga kategoritë tona dhe rezervoni lehtësisht.</p>
+        <h2 className="text-3xl font-heading font-semibold">Dhoma dhe Apartamentet tona</h2>
+        <p className="mt-3 text-gray-600 max-w-2xl mx-auto">Eksploro koleksionin tonë të apartamenteve të dizajnuara për rehati dhe stil. Zgjidhni një apartament dhe shikoni galerinë, detajet dhe mundësinë për të rezervuar menjëherë.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {rooms.map((r) => (
-          <div key={r.id} className="bg-white rounded-xl border border-gray-100 p-5 shadow-soft card-hover flex flex-col">
-            <div className="w-full h-44 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-              <img src={r.image} alt={r.name} className="w-full h-full object-cover" />
-            </div>
-
-            <div className="mt-4 flex-1">
-              <h3 className="text-lg font-semibold">{r.name}</h3>
-              <p className="text-brand font-medium mt-1">{r.price}</p>
-              <p className="text-sm text-gray-600 mt-2">{r.description}</p>
-
-              <ul className="mt-3 text-sm text-gray-600 space-y-1">
-                {r.features.map((f) => <li key={f}>• {f}</li>)}
-              </ul>
-            </div>
-
-            <div className="mt-4">
-              <a href="https://www.airbnb.com/slink/lQvhOaVP" target="_blank" rel="noopener noreferrer" className="inline-block w-full text-center px-4 py-3 bg-brand text-white rounded-lg shadow hover:brightness-95 transition">Rezervo tani</a>
-            </div>
-
-          </div>
+          <ApartmentCard key={r.id} room={r} images={groups[r.id]} onOpenGallery={() => openGalleryForRoom(r.id, 0, r.name, r)} />
         ))}
       </div>
+
+      <div className="mt-12 flex justify-center">
+        <a href="/dhomat" className="btn-premium px-6 py-3">Shiko të gjitha dhomat</a>
+      </div>
+
+      <RoomLightbox images={currentImages} isOpen={isOpen} startIndex={startIndex} title={currentTitle} details={currentDetails} onClose={closeGallery} />
     </div>
   )
 }

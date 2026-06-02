@@ -14,16 +14,16 @@ export default function Header() {
   const [open, setOpen] = useState(false)
   return (
     <>
-      <header className="w-full bg-[#E4EDFF] fixed top-0 left-0 z-[9999]" style={{ height: '72px' }}>
+  <header className="w-full bg-bg-warm fixed top-0 left-0 z-[9999] border-b border-transparent backdrop-blur-sm" style={{ height: '72px' }}>
         <div className="max-w-7xl mx-auto h-full flex items-center justify-between px-4 md:px-6">
           {/* Logo left */}
           <div className="flex items-center">
             <div className="text-left">
               <NavLink to="/" className="flex flex-col">
-                <div className="text-2xl font-bold text-[#0f1724] leading-tight">
-                  Center<span className="inline-block bg-[#2699D6]/20 text-[#2699D6] px-1 ml-1 rounded-sm">Stays</span>
+                <div className="text-2xl font-heading font-bold text-charcoal leading-tight">
+                  Center<span className="inline-block logo-highlight ml-1">Stays</span>
                 </div>
-                <div className="text-xs text-[#0f1724]/70">Apartments</div>
+                <div className="text-xs text-charcoal/70">Apartments</div>
               </NavLink>
             </div>
           </div>
@@ -37,7 +37,7 @@ export default function Header() {
                 aria-label="Menu"
                 onClick={() => setOpen(true)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setOpen(true) }}
-                className="w-[140px] h-[40px] rounded-full border-2 border-[#2699D6] text-[#2699D6] bg-transparent flex items-center justify-center hover:bg-[#2699D6]/10 transition cursor-pointer text-sm"
+                className="w-[140px] h-[40px] rounded-full border border-charcoal text-charcoal bg-transparent flex items-center justify-center hover:bg-charcoal/5 transition cursor-pointer text-sm font-medium"
               >
                 Menu
               </button>

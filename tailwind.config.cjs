@@ -6,16 +6,26 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          DEFAULT: '#2699D6'
-        },
-        charcoal: {
-          DEFAULT: '#111827'
-        }
+        charcoal: '#0f1724',
+        ivory: '#F6F3EE',
+        champagne: '#C6A76D',
+        gold: '#CBAA6A',
+        'warm-gray': '#E9E6E1',
+        'bg-warm': '#FBF9F7',
+      },
+      fontFamily: {
+        heading: ['"Playfair Display"', 'serif'],
+        body: ['Inter', 'ui-sans-serif', 'system-ui']
+      },
+      borderRadius: {
+        'lg-2': '14px'
       },
       boxShadow: {
-        'soft': '0 8px 30px rgba(17,24,39,0.06)',
-        'soft-blue': '0 10px 30px rgba(38,153,214,0.12)'
+        'lux-1': '0 10px 40px rgba(15,23,36,0.12)',
+        'lux-2': '0 20px 60px rgba(15,23,36,0.14)'
+      },
+      transitionDuration: {
+        400: '400ms'
       }
     }
   },

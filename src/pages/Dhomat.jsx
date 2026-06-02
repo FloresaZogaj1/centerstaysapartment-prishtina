@@ -6,13 +6,14 @@ import PageHero from '../components/PageHero'
 
 export default function Dhomat() {
   return (
-    <div className="pt-[110px]">
+    <div>
       <PageHero
         title="Zgjedhni dhomën tuaj"
         subtitle="Standard, Deluxe dhe Premium — çdo dhomë e dizajnuar për rehati dhe stil."
         ctaText="Shiko disponueshmërinë"
         ctaHref="#dhomat"
-        bg="https://images.unsplash.com/photo-1505691723518-36a18f5f7c66?auto=compress&cs=tinysrgb&w=1600&h=900&fit=crop"
+        // use a local apartment image from project root for a stronger match
+        bg="/apartment1.jpeg"
       />
 
       <BookingStrip />

@@ -4,7 +4,7 @@ import PageHero from '../components/PageHero'
 
 export default function Kontakti() {
   return (
-    <div className="pt-[110px]">
+    <div>
       <PageHero
         title="Na kontaktoni"
         subtitle="Për rezervime, kërkesa speciale apo informacione — na shkruani dhe do t'ju përgjigjemi shpejt." 
