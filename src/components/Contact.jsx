@@ -13,7 +13,7 @@ export default function Contact() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div id="kontakti" className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
         <div>
           <h2 className="text-2xl font-semibold">Kontakti</h2>
@@ -35,26 +35,14 @@ export default function Contact() {
         </div>
 
         <div>
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl p-6 border border-gray-100 shadow-soft">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Emri</label>
-              <input name="name" value={form.name} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:ring-brand focus:border-brand" />
+          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-soft flex flex-col items-start gap-4">
+            <h3 className="font-semibold">Send an inquiry</h3>
+            <p className="text-gray-600">Use the availability form to send your preferred dates and we will reply quickly. Or message us on WhatsApp for instant replies.</p>
+            <div className="w-full flex gap-3">
+              <a href="#availability" onClick={(e)=>{e.preventDefault(); const el=document.getElementById('availability'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'})}} className="inline-block px-4 py-3 bg-[#CBAA6A] text-white rounded-lg">Check Availability</a>
+              <a href={`https://wa.me/38348110988?text=${encodeURIComponent('Hello, I would like to check availability for CenterStays Apartments in Prishtina.')}`} target="_blank" rel="noreferrer" className="inline-block px-4 py-3 border border-[#CBAA6A] text-[#CBAA6A] rounded-lg">Message on WhatsApp</a>
             </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input name="email" type="email" value={form.email} onChange={handleChange} required className="mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:ring-brand focus:border-brand" />
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700">Mesazhi</label>
-              <textarea name="message" value={form.message} onChange={handleChange} rows="5" required className="mt-1 block w-full rounded-md border-gray-200 shadow-sm focus:ring-brand focus:border-brand" />
-            </div>
-
-            <div className="mt-4">
-              <button type="submit" className="w-full px-4 py-3 bg-brand text-white rounded-lg hover:brightness-95 transition">Dërgo Mesazhin</button>
-            </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>

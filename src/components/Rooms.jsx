@@ -63,14 +63,16 @@ export default function Rooms() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {rooms.map((r) => (
-          <ApartmentCard key={r.id} room={r} images={groups[r.id]} onOpenGallery={() => openGalleryForRoom(r.id, 0, r.name, r)} />
-        ))}
+        {rooms.map((r) => {
+          const imgs = groups[r.id] || groups.standard
+          const roomWithImage = { ...r, image: r.image || imgs[0] }
+          return (
+            <ApartmentCard key={r.id} room={roomWithImage} images={imgs} onOpenGallery={() => openGalleryForRoom(r.id, 0, r.name, r)} />
+          )
+        })}
       </div>
 
-      <div className="mt-12 flex justify-center">
-        <a href="/dhomat" className="btn-premium px-6 py-3">Shiko të gjitha dhomat</a>
-      </div>
+      {/* Removed the 'Shiko të gjitha dhomat' button as per simplified UX */}
 
       <RoomLightbox images={currentImages} isOpen={isOpen} startIndex={startIndex} title={currentTitle} details={currentDetails} onClose={closeGallery} />
     </div>

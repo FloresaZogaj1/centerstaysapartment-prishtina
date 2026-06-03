@@ -1,6 +1,8 @@
 import React from 'react'
+import { useBooking } from './BookingProvider'
 
 export default function Footer() {
+  const { openBooking } = useBooking()
   return (
     <footer className="bg-white border-t border-gray-100 mt-16">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -27,7 +29,12 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 text-center text-sm text-gray-500">
+        <div className="mt-8 flex items-center justify-center gap-4">
+          <a href="#availability" onClick={(e)=>{e.preventDefault(); const el=document.getElementById('availability'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'})}} className="px-4 py-2 btn-premium">Check Availability</a>
+          <a href={`https://wa.me/38348110988?text=${encodeURIComponent('Hello, I would like to check availability for CenterStays Apartments in Prishtina.')}`} className="px-4 py-2 text-[#CBAA6A]">Message on WhatsApp</a>
+        </div>
+
+        <div className="mt-6 text-center text-sm text-gray-500">
           © 2026 CenterStays Apartments. All rights reserved.
         </div>
       </div>

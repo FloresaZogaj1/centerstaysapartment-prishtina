@@ -1,8 +1,18 @@
 import React from 'react'
+import { useEffect } from 'react'
 
 // Temporary static hero fallback to avoid runtime errors from the slider.
 // Revert to the Swiper-based `HeroSlider` once HMR/import issues are resolved.
 export default function Hero() {
+  // Smooth scroll helpers (keeps page as inquiry site, not a booking engine)
+  function scrollToAvailability() {
+    const el = document.getElementById('availability')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+  function scrollToApartments() {
+    const el = document.getElementById('apartments')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   const slide = {
     image: '/Instagram_files/473136151_18033560417428513_1733372448230331900_n.jpg',
     title: 'Luxury Apartments in the Heart of Prishtina',
@@ -20,9 +30,9 @@ export default function Hero() {
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-heading leading-tight">{slide.title}</h1>
           <p className="mt-4 text-md md:text-lg opacity-90">{slide.subtitle}</p>
           <div className="mt-6 flex items-center justify-center gap-3">
-            <button className="btn-premium">Check Availability</button>
-            <button className="px-4 py-2 rounded-md border border-white/20 text-white">View Apartments</button>
-            <a href={`https://wa.me/38344123456?text=${encodeURIComponent('Hello, I would like to check availability for CenterStays Apartments in Prishtina.')}`} className="px-4 py-2 rounded-md bg-white text-charcoal">Book via WhatsApp</a>
+            <button onClick={scrollToAvailability} className="btn-premium">Check Availability</button>
+            <button onClick={scrollToApartments} className="px-4 py-2 rounded-md border border-white/20 text-white">View Apartments</button>
+            <a href={`https://wa.me/38348110988?text=${encodeURIComponent('Hello, I would like to check availability for CenterStays Apartments in Prishtina.')}`} className="px-4 py-2 rounded-md bg-white text-charcoal">Book via WhatsApp</a>
           </div>
         </div>
       </div>

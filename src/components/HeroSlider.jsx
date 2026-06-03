@@ -15,6 +15,14 @@ const slides = [
 ]
 
 export default function HeroSlider() {
+  function scrollToAvailability() {
+    const el = document.getElementById('availability')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+  function scrollToApartments() {
+    const el = document.getElementById('apartments')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
   return (
     <div className="hero-slide relative overflow-hidden">
       <Swiper
@@ -36,9 +44,9 @@ export default function HeroSlider() {
                   <h1 className="text-3xl md:text-5xl lg:text-6xl font-heading leading-tight">{s.title}</h1>
                   <p className="mt-4 text-md md:text-lg opacity-90">{s.subtitle}</p>
                   <div className="mt-6 flex items-center justify-center gap-3">
-                    <button className="btn-premium">Check Availability</button>
-                    <button className="px-4 py-2 rounded-md border border-white/20 text-white">View Apartments</button>
-                    <a href={`https://wa.me/38344123456?text=${encodeURIComponent('Hello, I would like to check availability for CenterStays Apartments in Prishtina.')}`} className="px-4 py-2 rounded-md bg-white text-charcoal">Book via WhatsApp</a>
+                    <button onClick={scrollToAvailability} className="btn-premium">Check Availability</button>
+                    <button onClick={scrollToApartments} className="px-4 py-2 rounded-md border border-white/20 text-white">View Apartments</button>
+                    <a href={`https://wa.me/38348110988?text=${encodeURIComponent('Hello, I would like to check availability for CenterStays Apartments in Prishtina.')}`} className="px-4 py-2 rounded-md bg-white text-charcoal">Book via WhatsApp</a>
                   </div>
                 </div>
               </div>

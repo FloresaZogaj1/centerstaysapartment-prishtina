@@ -1,6 +1,6 @@
 import React from 'react'
 
-export default function FloatingWhatsApp({ phone = '+38344123456', message = 'Hello, I would like to check availability for CenterStays Apartments in Prishtina.' }) {
+export default function FloatingWhatsApp({ phone = '+38348110988', message = 'Hello, I would like to check availability for CenterStays Apartments in Prishtina.' }) {
   const href = `https://wa.me/${phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent(message)}`
   return (
     <a href={href} target="_blank" rel="noreferrer" aria-label="Contact us on WhatsApp" className="fixed right-4 bottom-6 z-50">

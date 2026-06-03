@@ -12,7 +12,7 @@ export default function BookingStrip() {
         </div>
 
         <div>
-          <a href="https://www.airbnb.com/slink/lQvhOaVP" target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-brand text-white rounded-lg shadow">Kontrollo Disponueshmërinë</a>
+          <a href="https://www.airbnb.com/slink/lQvhOaVP" target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-brand text-charcoal rounded-lg shadow">Kontrollo Disponueshmërinë</a>
         </div>
       </div>
     </div>
