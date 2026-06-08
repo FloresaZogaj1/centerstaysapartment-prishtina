@@ -1,12 +1,21 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 
 export default function ApartmentCard({ room, images = [], onOpenGallery = () => {} }) {
   // fallback image choices
-  const fallback = '/Instagram_files/473136151_18033560417428513_1733372448230331900_n.jpg'
-  const src = (images && images[0]) || room.image || fallback
+  const instagramFallback = '/Instagram_files/473136151_18033560417428513_1733372448230331900_n.jpg'
+  const safeFallback = '/foto1.avif'
+  const initialSrc = (images && images[0]) || room.image || instagramFallback
+  const [src, setSrc] = useState(initialSrc)
+
+  useEffect(() => {
+    const img = new Image()
+    img.onload = () => setSrc(initialSrc)
+    img.onerror = () => setSrc(room.image || safeFallback)
+    img.src = initialSrc
+  }, [initialSrc, room.image])
 
   function handleImageError(e) {
-    e.currentTarget.src = room.image || fallback
+    e.currentTarget.src = room.image || safeFallback
   }
 
   function handleOpenGallery() {

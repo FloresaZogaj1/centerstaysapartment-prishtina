@@ -1,7 +1,7 @@
 import React from 'react'
 
 export default function PageHero({ title, subtitle, ctaText, ctaHref, bg }) {
-  const bgImg = bg || '/Instagram_files/473136151_18033560417428513_1733372448230331900_n.jpg'
+  const bgImg = bg || '/foto1.avif'
   return (
   // reduced top margin so header and hero sit closer
   // Small gap to account for fixed header (72px) but keep content visually tight

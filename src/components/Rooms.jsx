@@ -31,10 +31,30 @@ const rooms = [
 
 export default function Rooms() {
   // organized image groups per room type
+  // Use explicit filenames that exist in /public so deployment (case-sensitive) shows images correctly.
   const groups = {
-    standard: Array.from({ length: 6 }).map((_, i) => `/apartment${i + 1}.jpeg`), // 1..6
-    deluxe: Array.from({ length: 7 }).map((_, i) => `/apartment${7 + i}.jpeg`),   // 7..13
-    premium: Array.from({ length: 6 }).map((_, i) => `/apartment${14 + i}.jpeg`), // 14..19
+    standard: [
+      '/apartment1.jpeg',
+      '/apartment2.jpeg',
+      '/apartment3.jpeg',
+      '/apartment4.jpeg',
+      '/apartment5.jpeg',
+      '/apartment6.jpeg'
+    ],
+    deluxe: [
+      '/apartment7.jpeg',
+      '/apartment8.jpeg',
+      '/apartment9.jpeg',
+      '/apartment10.jpeg',
+      '/apartment12.jpeg',
+      '/apartment13.jpeg'
+    ],
+    premium: [
+      '/apartment15.jpeg',
+      '/apartment16.jpeg',
+      '/apartment17.jpeg',
+      '/apartment19.jpeg'
+    ]
   }
 
   const [isOpen, setIsOpen] = useState(false)

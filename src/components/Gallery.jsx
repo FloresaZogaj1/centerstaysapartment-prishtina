@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 
 // Map actual folders to gallery categories. The folders exist in the project root and are served from /
 const bedroomFiles = [
-  'aparmtment11.jpeg', 'aparmtnetn14.jpeg', 'apartment12.jpeg', 'apartment13.jpeg', 'apartment16.jpeg', 'apartment17.jpeg', 'apartment9.jpeg', 'foto10.avif', 'foto4.avif'
+  'apartment11.jpeg', 'apartment14.jpeg', 'apartment12.jpeg', 'apartment13.jpeg', 'apartment16.jpeg', 'apartment17.jpeg', 'apartment9.jpeg', 'foto10.avif', 'foto4.avif'
 ].map(f => `/beedrom/${f}`)
 
 const livingFiles = [
@@ -39,8 +39,8 @@ export default function Gallery() {
     return galleryData.filter(i => i.category === filter)
   }, [filter, galleryData])
 
-  // fallback image to avoid broken icons
-  const fallback = '/Instagram_files/473136151_18033560417428513_1733372448230331900_n.jpg'
+  // fallback image to avoid broken icons (safe file present in public/)
+  const fallback = '/foto1.avif'
 
   return (
     <div id="gallery" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -1,5 +1,4 @@
-import React from 'react'
-import { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 
 // Temporary static hero fallback to avoid runtime errors from the slider.
 // Revert to the Swiper-based `HeroSlider` once HMR/import issues are resolved.
@@ -18,12 +17,24 @@ export default function Hero() {
     title: 'Luxury Apartments in the Heart of Prishtina',
     subtitle: 'Premium comfort, elegant interiors and effortless city access.'
   }
+  const [bgImage, setBgImage] = useState(slide.image)
+
+  // Preload the hero image and fallback to a local safe image if it fails to load
+  useEffect(() => {
+    const img = new Image()
+    img.onload = () => setBgImage(slide.image)
+    img.onerror = () => {
+      // fallback that we know exists in public/
+      setBgImage('/foto1.avif')
+    }
+    img.src = slide.image
+  }, [])
 
   return (
     <section className="w-full" style={{ marginTop: '72px' }}>
       <div
         className="relative w-full h-[60vh] flex items-center justify-center bg-cover bg-center"
-        style={{ backgroundImage: `url(${slide.image})` }}
+        style={{ backgroundImage: `url(${bgImage})` }}
       >
         <div className="absolute inset-0 bg-black/40" />
         <div className="relative text-center text-white px-6">
