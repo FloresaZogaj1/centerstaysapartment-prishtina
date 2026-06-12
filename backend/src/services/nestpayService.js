@@ -1,0 +1,142 @@
+"use strict"
+const crypto = require('crypto')
+
+// Required environment variables for BKT (fail fast if missing)
+const REQUIRED_VARS = [
+  'BKT_CLIENT_ID',
+  'BKT_STORE_KEY',
+  'BKT_STORE_TYPE',
+  'BKT_CURRENCY',
+  'BKT_TRAN_TYPE',
+  'BKT_3D_POST_URL',
+  'BKT_API_USERNAME',
+  'BKT_API_PASSWORD',
+  'BKT_API_POST_URL',
+  'BKT_SUCCESS_URL',
+  'BKT_FAIL_URL',
+  'BKT_CALLBACK_URL'
+]
+
+for (const v of REQUIRED_VARS) {
+  if (!process.env[v]) {
+    throw new Error(`Missing required BKT environment variable: ${v}`)
+  }
+}
+
+/**
+ * escapeHashValue - escapes pipe characters and trims value
+ * Rule: The official instructions require values to be escaped (pipes) and
+ * joined with |. We'll apply a conservative escaping: replace '|' with '\\|' and trim.
+ */
+function escapeHashValue (value) {
+  if (value === undefined || value === null) return ''
+  return String(value).trim().replace(/\|/g, '\\|')
+}
+
+/**
+ * buildHashPlainText(params, storeKey)
+ * - Exclude hash and HASH and encoding and storeKey from params
+ * - Sort parameter names alphabetically A-Z
+ * - Join escaped values with |
+ * - Append storeKey at the end
+ */
+function buildHashPlainText (params, storeKey) {
+  const filtered = {}
+  for (const k of Object.keys(params)) {
+    const lk = k.toLowerCase()
+    if (lk === 'hash' || lk === 'encoding' || lk === 'storekey') continue
+    filtered[k] = params[k]
+  }
+
+  const names = Object.keys(filtered).sort((a, b) => a.localeCompare(b))
+  const escaped = names.map(n => escapeHashValue(filtered[n]))
+  const joined = escaped.join('|')
+  return joined + '|' + (storeKey || '')
+}
+
+/**
+ * generateHashV3
+ * - SHA512 then Base64
+ */
+function generateHashV3 (params, storeKey) {
+  const plain = buildHashPlainText(params, storeKey)
+  const hash = crypto.createHash('sha512').update(plain, 'utf8').digest('base64')
+  return hash
+}
+
+/**
+ * verifyHashV3
+ */
+function verifyHashV3 (params, receivedHash, storeKey) {
+  try {
+    const calc = generateHashV3(params, storeKey)
+    return calc === receivedHash
+  } catch (err) {
+    return false
+  }
+}
+
+/**
+ * create3DPayHostingFields
+ * Build the form fields for 3D_PAY_HOSTING post to BKT
+ */
+function create3DPayHostingFields ({ booking, payment }) {
+  // booking: contains bookingNumber, pricing.totalAmount
+  // payment: local payment record (id)
+  // Amount should be a string with two decimals (e.g. "850.00")
+  const rawAmount = (booking && booking.pricing && booking.pricing.totalAmount) || (payment && payment.amount) || 0
+  const amount = Number(rawAmount).toFixed(2)
+
+  const oid = booking && (booking.bookingNumber || booking._id) ? (booking.bookingNumber || booking._id) : `ORDER-${Date.now()}`
+
+  // Build the parameters strictly from environment and inputs (no hardcoded/demo fallbacks)
+  const params = {
+    clientid: process.env.BKT_CLIENT_ID,
+    amount: String(amount),
+    oid: String(oid),
+  okUrl: process.env.BKT_SUCCESS_URL,
+  failUrl: process.env.BKT_FAIL_URL,
+  callbackUrl: process.env.BKT_CALLBACK_URL,
+  TranType: process.env.BKT_TRAN_TYPE,
+  storetype: process.env.BKT_STORE_TYPE,
+    currency: process.env.BKT_CURRENCY,
+    rnd: String(Date.now()),
+    hashAlgorithm: 'ver3',
+    encoding: 'UTF-8'
+  }
+
+  const storeKey = process.env.BKT_STORE_KEY
+  const hash = generateHashV3(params, storeKey)
+
+  // Do NOT include storeKey or any secret in the returned fields
+  const returnedFields = Object.assign({}, params)
+  returnedFields.hash = hash
+
+  return {
+    action: process.env.BKT_3D_POST_URL,
+    fields: returnedFields
+  }
+}
+
+/**
+ * mapNestpayStatus
+ * Placeholder mapping from NestPay to internal statuses
+ */
+function mapNestpayStatus (payload) {
+  // payload will vary; map commonly used status fields
+  const status = (payload && (payload.status || payload.procedureResult || payload.Result)) || ''
+  const s = String(status).toLowerCase()
+  if (s.includes('success') || s.includes('approved') || s === '1') return 'paid'
+  if (s.includes('pending')) return 'pending'
+  if (s.includes('fail') || s.includes('denied') || s === '0') return 'failed'
+  return 'unknown'
+}
+
+module.exports = {
+  escapeHashValue,
+  buildHashPlainText,
+  generateHashV3,
+  verifyHashV3,
+  create3DPayHostingFields,
+  mapNestpayStatus
+}
