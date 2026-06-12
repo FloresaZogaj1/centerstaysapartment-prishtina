@@ -11,6 +11,8 @@ import Rreth from './pages/Rreth'
 import Dhomat from './pages/Dhomat'
 import BlogPage from './pages/BlogPage'
 import Kontakti from './pages/Kontakti'
+import PaymentSuccess from './pages/PaymentSuccess'
+import PaymentFail from './pages/PaymentFail'
 
 export default function App() {
   return (
@@ -26,6 +28,8 @@ export default function App() {
               <Route path="/dhomat" element={<Dhomat />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/kontakti" element={<Kontakti />} />
+              <Route path="/payment/success" element={<PaymentSuccess />} />
+              <Route path="/payment/fail" element={<PaymentFail />} />
             </Routes>
           </main>
           <Footer />

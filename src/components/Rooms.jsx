@@ -1,33 +1,10 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import RoomLightbox from './RoomLightbox'
 import ApartmentCard from './ApartmentCard'
+import BookingModal from './BookingModal'
+import { getRooms } from '../api/bookingApi'
 
-const rooms = [
-  {
-    id: 'standard',
-    name: 'Standard Apartment',
-    price: 'Nga €45 / nata',
-    description: 'Zgjidhje praktike dhe komode për qëndrime të shkurtra në qytet.',
-    features: ['1 dhomë gjumi', 'Wi‑Fi', 'Kuzhinë e vogël', 'Banjo private'],
-  image: '/Instagram_files/659025397_18076753307428513_1454559748560419820_n.jpg'
-  },
-  {
-    id: 'deluxe',
-    name: 'Deluxe Apartment',
-    price: 'Nga €60 / nata',
-    description: 'Apartament më i gjerë me dizajn modern dhe më shumë rehati.',
-    features: ['1–2 dhoma', 'Ambient i ndriçuar', 'Kuzhinë', 'TV', 'Wi‑Fi'],
-  image: '/Instagram_files/656314906_18076753487428513_4009666761995664575_n.jpg'
-  },
-  {
-    id: 'premium',
-    name: 'Premium City Stay',
-    price: 'Nga €80 / nata',
-    description: 'Qëndrim premium në lokacion qendror për eksperiencë më të kompletuar.',
-    features: ['Pamje qyteti', 'Hapësirë më e madhe', 'Stil modern', 'Pajisje të plota'],
-  image: '/Instagram_files/648631785_18074365370428513_4289514915533021647_n.jpg'
-  }
-]
+// We'll fetch rooms from backend and map them to the UI shape ApartmentCard expects.
 
 export default function Rooms() {
   // organized image groups per room type
@@ -62,6 +39,44 @@ export default function Rooms() {
   const [startIndex, setStartIndex] = useState(0)
   const [currentTitle, setCurrentTitle] = useState('')
   const [currentDetails, setCurrentDetails] = useState(null)
+  const [bookingOpen, setBookingOpen] = useState(false)
+  const [selectedRoom, setSelectedRoom] = useState(null)
+  const [rooms, setRooms] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    async function load() {
+      setLoading(true)
+      try {
+        const data = await getRooms()
+        if (!mounted) return
+        // Some backends may return an object { value: [...] } or the array directly.
+        const list = Array.isArray(data) ? data : (data.value || [])
+        // Map backend fields to UI shape expected by ApartmentCard
+        const mapped = list.map(r => ({
+          _id: r._id,
+          id: r._id, // keep a unique key
+          name: r.name,
+          description: r.description,
+          price: r.basePricePerNight ? `€${r.basePricePerNight} / nata` : '',
+          basePricePerNight: r.basePricePerNight,
+          features: r.amenities || [],
+          image: r.imageUrl || (groups[r.slug] ? groups[r.slug][0] : groups.standard[0]),
+          raw: r,
+        }))
+        setRooms(mapped)
+      } catch (err) {
+        console.error('Failed to load rooms:', err)
+        setError(err.message || 'Failed to load rooms')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
 
   function openGalleryForRoom(roomId, index = 0, title = '', details = null) {
     const imgs = groups[roomId] || groups.standard
@@ -70,6 +85,12 @@ export default function Rooms() {
     setCurrentTitle(title)
     setCurrentDetails(details)
     setIsOpen(true)
+  }
+
+  function openBookingForRoom(room) {
+    // room here is the local room object from rooms[]; map to API room shape if needed
+    setSelectedRoom(room)
+    setBookingOpen(true)
   }
 
   function closeGallery() {
@@ -83,18 +104,22 @@ export default function Rooms() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {rooms.map((r) => {
-          const imgs = groups[r.id] || groups.standard
+        {loading && <div>Loading rooms...</div>}
+        {error && <div className="text-red-500">{error}</div>}
+        {!loading && !error && rooms.map((r) => {
+          const imgs = groups[r.slug] || groups.standard
           const roomWithImage = { ...r, image: r.image || imgs[0] }
+          // Pass the full backend room object onBook so BookingFormV2 gets _id and basePricePerNight
           return (
-            <ApartmentCard key={r.id} room={roomWithImage} images={imgs} onOpenGallery={() => openGalleryForRoom(r.id, 0, r.name, r)} />
+            <ApartmentCard key={r.id} room={roomWithImage} images={imgs} onOpenGallery={() => openGalleryForRoom(r.id, 0, r.name, r.raw)} onBook={() => openBookingForRoom(r.raw)} />
           )
         })}
       </div>
 
       {/* Removed the 'Shiko të gjitha dhomat' button as per simplified UX */}
 
-      <RoomLightbox images={currentImages} isOpen={isOpen} startIndex={startIndex} title={currentTitle} details={currentDetails} onClose={closeGallery} />
+  <RoomLightbox images={currentImages} isOpen={isOpen} startIndex={startIndex} title={currentTitle} details={currentDetails} onClose={closeGallery} />
+  <BookingModal isOpen={bookingOpen} onClose={() => setBookingOpen(false)} initialData={{ room: selectedRoom }} />
     </div>
   )
 }

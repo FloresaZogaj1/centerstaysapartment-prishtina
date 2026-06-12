@@ -2,20 +2,20 @@ import React, { useMemo, useState } from 'react'
 
 // Map actual folders to gallery categories. The folders exist in the project root and are served from /
 const bedroomFiles = [
-  'apartment11.jpeg', 'apartment14.jpeg', 'apartment12.jpeg', 'apartment13.jpeg', 'apartment16.jpeg', 'apartment17.jpeg', 'apartment9.jpeg', 'foto10.avif', 'foto4.avif'
-].map(f => `/beedrom/${f}`)
+  '/beedrom/apartment11.jpeg', '/beedrom/apartment14.jpeg', '/beedrom/apartment12.jpeg', '/beedrom/apartment13.jpeg', '/beedrom/apartment16.jpeg', '/beedrom/apartment17.jpeg', '/beedrom/apartment9.jpeg', '/beedrom/foto10.avif', '/beedrom/foto4.avif'
+]
 
 const livingFiles = [
-  'apartment1.jpeg','apartment10.jpeg','apartment19.jpeg','apartment2.jpeg','apartment5.jpeg','apartment6.jpeg','apartment8.jpeg','foto2.avif','foto7.avif','foto8.avif','foto99.avif'
-].map(f => `/living/${f}`)
+  '/living/apartment1.jpeg','/living/apartment10.jpeg','/living/apartment19.jpeg','/living/apartment2.jpeg','/living/apartment5.jpeg','/living/apartment6.jpeg','/living/apartment8.jpeg','/living/foto2.avif','/living/foto7.avif','/living/foto8.avif','/living/foto99.avif'
+]
 
 const kitchenFiles = [
-  'apartment15.jpeg','apartment3.jpeg','apartment4.jpeg','foto1.avif','foto11.avif','foto9.avif'
-].map(f => `/kitchen/${f}`)
+  '/kitchen/apartment15.jpeg','/kitchen/apartment3.jpeg','/kitchen/apartment4.jpeg','/kitchen/foto1.avif','/kitchen/foto11.avif','/kitchen/foto9.avif'
+]
 
 const bathroomFiles = [
-  'apartment7.jpeg','foto6.avif'
-].map(f => `/bathroom/${f}`)
+  '/bathroom/apartment7.jpeg','/bathroom/foto6.avif'
+]
 
 
 export default function Gallery() {

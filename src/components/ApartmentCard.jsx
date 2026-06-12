@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 
-export default function ApartmentCard({ room, images = [], onOpenGallery = () => {} }) {
+export default function ApartmentCard({ room, images = [], onOpenGallery = () => {}, onBook = null }) {
   // fallback image choices
   const instagramFallback = '/Instagram_files/473136151_18033560417428513_1733372448230331900_n.jpg'
   const safeFallback = '/foto1.avif'
@@ -62,7 +62,7 @@ export default function ApartmentCard({ room, images = [], onOpenGallery = () =>
         </ul>
 
         <div className="mt-auto flex items-center justify-center pt-4">
-          <button onClick={() => { const el = document.getElementById('availability') || document.getElementById('kontakti') || document.getElementById('contact'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} className="px-4 py-2 rounded-md bg-[#CBAA6A] text-white">Check Availability</button>
+          <button onClick={() => { if (onBook) return onBook(room); const el = document.getElementById('availability') || document.getElementById('kontakti') || document.getElementById('contact'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} className="px-4 py-2 rounded-md bg-[#CBAA6A] text-white">Check Availability</button>
         </div>
       </div>
     </article>

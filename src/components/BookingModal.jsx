@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import BookingForm from './BookingForm'
+import BookingFormV2 from './BookingFormV2'
 
 export default function BookingModal({ isOpen, onClose, initialData }) {
   const [submitted, setSubmitted] = useState(false)
@@ -7,10 +7,8 @@ export default function BookingModal({ isOpen, onClose, initialData }) {
   if (!isOpen) return null
 
   function handleSubmit(payload) {
-    // For now frontend-only: prepare payload and show success
+    // handled inside BookingFormV2
     console.log('Booking payload', payload)
-    setSubmitted(true)
-    // In future: send to backend
   }
 
   const phone = (initialData && initialData.phone) || '+38348110988'
@@ -28,7 +26,7 @@ export default function BookingModal({ isOpen, onClose, initialData }) {
             <p className="text-sm text-gray-600 mt-1">Fill the form to check availability or contact us via WhatsApp.</p>
 
             <div className="mt-6">
-              <BookingForm initial={initialData || {}} onSubmit={handleSubmit} />
+              <BookingFormV2 selectedRoom={initialData?.room || initialData} onClose={onClose} />
             </div>
 
             <div className="mt-4 flex items-center gap-3">

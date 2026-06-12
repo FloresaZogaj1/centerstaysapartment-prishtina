@@ -1,0 +1,1007 @@
+{
+  "total": 123,
+  "missing": [
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/y-\\/r\\/4UjatOmQpXv.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\y-\\r\\4UjatOmQpXv.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/y1\\/r\\/Lc7W8JrWEpV.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\y1\\r\\Lc7W8JrWEpV.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/y2\\/r\\/E5MdgiszDmf.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\y2\\r\\E5MdgiszDmf.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/y3\\/r\\/Sc4jalCUSNZ.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\y3\\r\\Sc4jalCUSNZ.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/y8\\/r\\/oPrB6sKn4qV.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\y8\\r\\oPrB6sKn4qV.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/y9\\/r\\/kA_zkQHlhCO.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\y9\\r\\kA_zkQHlhCO.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/y9\\/r\\/LP1EAOfeHX0.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\y9\\r\\LP1EAOfeHX0.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/y9\\/r\\/Q2ZNmtFWO8-.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\y9\\r\\Q2ZNmtFWO8-.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yA\\/r\\/JWEG3Zh0Gb1.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yA\\r\\JWEG3Zh0Gb1.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/ya\\/r\\/QtR57gIVtwl.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\ya\\r\\QtR57gIVtwl.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yB\\/r\\/LmYTr6BtWK3.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yB\\r\\LmYTr6BtWK3.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yD\\/r\\/458zJ8tWUVm.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yD\\r\\458zJ8tWUVm.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/ye\\/r\\/igfyf5EJpob.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\ye\\r\\igfyf5EJpob.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yf\\/r\\/KzRfhtjtDUH.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yf\\r\\KzRfhtjtDUH.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yf\\/r\\/LbfCL1Uec7z.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yf\\r\\LbfCL1Uec7z.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yF\\/r\\/uTiHHxMJr9c.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yF\\r\\uTiHHxMJr9c.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yg\\/r\\/fPfIsyqzayZ.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yg\\r\\fPfIsyqzayZ.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yG\\/r\\/nI-WEQzPZ-p.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yG\\r\\nI-WEQzPZ-p.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yI\\/r\\/FA6bOtx_bZy.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yI\\r\\FA6bOtx_bZy.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yI\\/r\\/pYarJMhNksB.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yI\\r\\pYarJMhNksB.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yl\\/r\\/OalnXMyIEpO.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yl\\r\\OalnXMyIEpO.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yM\\/r\\/xDXAPH6hx3w.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yM\\r\\xDXAPH6hx3w.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yN\\/r\\/UfbYYEg0wRE.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yN\\r\\UfbYYEg0wRE.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yo\\/r\\/_fzpvrkW1lG.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yo\\r\\_fzpvrkW1lG.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yO\\/r\\/DZdtANGX6K9.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yO\\r\\DZdtANGX6K9.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yO\\/r\\/EUmg2DN6PiY.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yO\\r\\EUmg2DN6PiY.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yo\\/r\\/WyKpkuE0ha-.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yo\\r\\WyKpkuE0ha-.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yp\\/r\\/LIPrkLM2E9F.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yp\\r\\LIPrkLM2E9F.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yP\\/r\\/srAa9v_xccD.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yP\\r\\srAa9v_xccD.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yR\\/r\\/tngGP2wJatY.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yR\\r\\tngGP2wJatY.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/ys\\/r\\/aJV78VskWGO.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\ys\\r\\aJV78VskWGO.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/ys\\/r\\/oPIjP8ptO-y.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\ys\\r\\oPIjP8ptO-y.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yS\\/r\\/pOiIgcIbij4.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yS\\r\\pOiIgcIbij4.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yt\\/r\\/5izM9SVQ5Vi.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yt\\r\\5izM9SVQ5Vi.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yv\\/r\\/li20524sOWU.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yv\\r\\li20524sOWU.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "https:\\/\\/static.cdninstagram.com\\/rsrc.php\\/v1\\/yZ\\/r\\/PRztsHpk5Jm.jpg",
+      "exists": false,
+      "normalizedPath": "public\\https:\\static.cdninstagram.com\\rsrc.php\\v1\\yZ\\r\\PRztsHpk5Jm.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    }
+  ],
+  "present": [
+    {
+      "image": "/apartment1.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment1.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx",
+        "src\\pages\\Dhomat.jsx"
+      ]
+    },
+    {
+      "image": "/apartment10.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment10.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment12.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment12.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment13.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment13.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment15.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment15.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment16.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment16.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment17.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment17.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment19.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment19.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment2.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment2.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment3.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment3.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment4.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment4.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment5.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment5.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment6.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment6.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment7.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment7.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment8.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment8.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/apartment9.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\apartment9.jpeg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx"
+      ]
+    },
+    {
+      "image": "/bathroom/apartment7.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\bathroom\\apartment7.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/bathroom/foto6.avif",
+      "exists": true,
+      "normalizedPath": "public\\bathroom\\foto6.avif",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/beedrom/apartment11.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\beedrom\\apartment11.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/beedrom/apartment12.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\beedrom\\apartment12.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/beedrom/apartment13.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\beedrom\\apartment13.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/beedrom/apartment14.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\beedrom\\apartment14.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/beedrom/apartment16.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\beedrom\\apartment16.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/beedrom/apartment17.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\beedrom\\apartment17.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/beedrom/apartment9.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\beedrom\\apartment9.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/beedrom/foto10.avif",
+      "exists": true,
+      "normalizedPath": "public\\beedrom\\foto10.avif",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/beedrom/foto4.avif",
+      "exists": true,
+      "normalizedPath": "public\\beedrom\\foto4.avif",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/foto1.avif",
+      "exists": true,
+      "normalizedPath": "public\\foto1.avif",
+      "referencedIn": [
+        "src\\components\\ApartmentCard.jsx",
+        "src\\components\\Gallery.jsx",
+        "src\\components\\Hero.jsx",
+        "src\\components\\PageHero.jsx"
+      ]
+    },
+    {
+      "image": "/Instagram_files/471997245_18032798666428513_4046479471986732846_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\471997245_18032798666428513_4046479471986732846_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/472006513_18032798210428513_108461716648088709_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\472006513_18032798210428513_108461716648088709_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/472011692_18033060665428513_3076273069642055081_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\472011692_18033060665428513_3076273069642055081_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/472013609_18032798354428513_1813805660871329492_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\472013609_18032798354428513_1813805660871329492_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/472015822_18032991689428513_6833907839299376487_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\472015822_18032991689428513_6833907839299376487_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/472018000_1248431362937566_3208334774464705125_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\472018000_1248431362937566_3208334774464705125_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/472018000_1248431362937566_3208334774464705125_n(1).jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\472018000_1248431362937566_3208334774464705125_n(1).jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/472444962_18033090281428513_3178507849621599111_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\472444962_18033090281428513_3178507849621599111_n.jpg",
+      "referencedIn": [
+        "src\\components\\HeroSlider.jsx",
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/472519777_18033168665428513_4618849186682702407_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\472519777_18033168665428513_4618849186682702407_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/472723289_18032904473428513_1284406948188455964_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\472723289_18032904473428513_1284406948188455964_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/473016745_18033208889428513_8755594424122914835_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\473016745_18033208889428513_8755594424122914835_n.jpg",
+      "referencedIn": [
+        "src\\components\\Blog.jsx",
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/473072333_18033104654428513_7026816142457014555_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\473072333_18033104654428513_7026816142457014555_n.jpg",
+      "referencedIn": [
+        "src\\components\\HeroSlider.jsx",
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/473136151_18033560417428513_1733372448230331900_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\473136151_18033560417428513_1733372448230331900_n.jpg",
+      "referencedIn": [
+        "src\\components\\ApartmentCard.jsx",
+        "src\\components\\Hero.jsx",
+        "src\\components\\HeroSlider.jsx",
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/473141833_18033568253428513_5936350848935318016_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\473141833_18033568253428513_5936350848935318016_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/473374918_18033498602428513_5607206984285640050_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\473374918_18033498602428513_5607206984285640050_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/476608961_18035887325428513_977838700680079383_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\476608961_18035887325428513_977838700680079383_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/477430732_18036547139428513_1588410756957135836_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\477430732_18036547139428513_1588410756957135836_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/481047000_18037851080428513_7170926134971554869_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\481047000_18037851080428513_7170926134971554869_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/482552725_18038507459428513_2452824048565464887_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\482552725_18038507459428513_2452824048565464887_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/483723636_18039249266428513_7737088369212432941_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\483723636_18039249266428513_7737088369212432941_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/487796399_18041623460428513_4586703253312252591_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\487796399_18041623460428513_4586703253312252591_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/491444293_18042725264428513_2461015011254396550_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\491444293_18042725264428513_2461015011254396550_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/491461117_18043732640428513_6787517367539234040_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\491461117_18043732640428513_6787517367539234040_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/498024330_18045581609428513_6994144509573546884_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\498024330_18045581609428513_6994144509573546884_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/498712816_18045473252428513_8613473359981965585_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\498712816_18045473252428513_8613473359981965585_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/573323465_1219825463302212_7278921664109726296_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\573323465_1219825463302212_7278921664109726296_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/587569001_18064817558428513_5894194251454763449_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\587569001_18064817558428513_5894194251454763449_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/588466103_18066225278428513_7871297794201099483_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\588466103_18066225278428513_7871297794201099483_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/590822099_18065447549428513_1649497350353115508_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\590822099_18065447549428513_1649497350353115508_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/601916450_18066992675428513_6316245581339196381_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\601916450_18066992675428513_6316245581339196381_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/605573508_18067730243428513_2890861545907469765_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\605573508_18067730243428513_2890861545907469765_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/632066003_18072438782428513_5367347132982272851_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\632066003_18072438782428513_5367347132982272851_n.jpg",
+      "referencedIn": [
+        "src\\components\\Blog.jsx",
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/643604079_18073836020428513_7857664004613811476_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\643604079_18073836020428513_7857664004613811476_n.jpg",
+      "referencedIn": [
+        "src\\components\\Blog.jsx",
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/645820956_18074119199428513_3009965671185148017_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\645820956_18074119199428513_3009965671185148017_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/648631785_18074365370428513_4289514915533021647_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\648631785_18074365370428513_4289514915533021647_n.jpg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx",
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/655061850_18076276331428513_6240862986534246204_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\655061850_18076276331428513_6240862986534246204_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/656314906_18076753487428513_4009666761995664575_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\656314906_18076753487428513_4009666761995664575_n.jpg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx",
+        "src\\pages\\Kontakti.jsx",
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/657821705_18076753325428513_194475441280059989_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\657821705_18076753325428513_194475441280059989_n.jpg",
+      "referencedIn": [
+        "src\\components\\About.jsx"
+      ]
+    },
+    {
+      "image": "/Instagram_files/658416263_964180892688364_808006142541757990_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\658416263_964180892688364_808006142541757990_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/659025397_18076753307428513_1454559748560419820_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\659025397_18076753307428513_1454559748560419820_n.jpg",
+      "referencedIn": [
+        "src\\components\\Rooms.jsx",
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/660125524_4171607513088904_2907060485483584907_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\660125524_4171607513088904_2907060485483584907_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/Instagram_files/708918754_18085986038237584_5000075774241811458_n.jpg",
+      "exists": true,
+      "normalizedPath": "public\\Instagram_files\\708918754_18085986038237584_5000075774241811458_n.jpg",
+      "referencedIn": [
+        "Instagram.html"
+      ]
+    },
+    {
+      "image": "/kitchen/apartment15.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\kitchen\\apartment15.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/kitchen/apartment3.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\kitchen\\apartment3.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/kitchen/apartment4.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\kitchen\\apartment4.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/kitchen/foto1.avif",
+      "exists": true,
+      "normalizedPath": "public\\kitchen\\foto1.avif",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/kitchen/foto11.avif",
+      "exists": true,
+      "normalizedPath": "public\\kitchen\\foto11.avif",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/kitchen/foto9.avif",
+      "exists": true,
+      "normalizedPath": "public\\kitchen\\foto9.avif",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/apartment1.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\living\\apartment1.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/apartment10.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\living\\apartment10.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/apartment19.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\living\\apartment19.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/apartment2.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\living\\apartment2.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/apartment5.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\living\\apartment5.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/apartment6.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\living\\apartment6.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/apartment8.jpeg",
+      "exists": true,
+      "normalizedPath": "public\\living\\apartment8.jpeg",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/foto2.avif",
+      "exists": true,
+      "normalizedPath": "public\\living\\foto2.avif",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/foto7.avif",
+      "exists": true,
+      "normalizedPath": "public\\living\\foto7.avif",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/foto8.avif",
+      "exists": true,
+      "normalizedPath": "public\\living\\foto8.avif",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    },
+    {
+      "image": "/living/foto99.avif",
+      "exists": true,
+      "normalizedPath": "public\\living\\foto99.avif",
+      "referencedIn": [
+        "src\\components\\Gallery.jsx"
+      ]
+    }
+  ]
+}
