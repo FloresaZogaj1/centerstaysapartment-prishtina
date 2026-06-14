@@ -13,11 +13,13 @@ router.post('/test-email', async (req, res) => {
   if (!to) return res.status(400).json({ message: 'Missing "to" in body' })
 
   if (!emailService.isEmailConfigured()) {
+    console.log('SMTP configuration missing')
     return res.status(400).json({ message: 'SMTP configuration missing.' })
   }
 
   try {
-    await emailService.sendTestEmail(to)
+    const ok = await emailService.sendTestEmail(to)
+    if (!ok) return res.status(500).json({ message: 'Failed to send test email.' })
     return res.status(200).json({ message: 'Test email sent.' })
   } catch (err) {
     console.error('Test email failed:', err && err.message ? err.message : err)

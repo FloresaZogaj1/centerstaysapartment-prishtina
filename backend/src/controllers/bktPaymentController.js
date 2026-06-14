@@ -66,7 +66,7 @@ const handleBktCallback = async (req, res) => {
       return res.status(400).json({ message: 'Missing order id (oid). Payment not updated.' })
     }
 
-    const booking = await Booking.findOne({ bookingNumber: oid })
+    const booking = await Booking.findOne({ bookingNumber: oid }).populate('room')
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found for oid. Payment not updated.' })
     }
@@ -111,10 +111,16 @@ const handleBktCallback = async (req, res) => {
     try {
       if (payment.status === 'paid') {
         try { await emailService.sendBookingPaidCustomerEmail(booking) } catch (e) { console.log('Email send error (customer paid):', e && e.message ? e.message : e) }
-        try { await emailService.sendBookingPaidAdminEmail(booking, payment) } catch (e) { console.log('Email send error (admin paid):', e && e.message ? e.message : e) }
+        try {
+          const ok = await emailService.sendBookingPaidAdminEmail(booking, payment)
+          if (!ok) console.log('Admin paid email not sent or failed (see logs)')
+        } catch (e) { console.log('Admin email failed', e && e.message ? e.message : e) }
       } else {
         try { await emailService.sendBookingFailedCustomerEmail(booking) } catch (e) { console.log('Email send error (customer failed):', e && e.message ? e.message : e) }
-        try { await emailService.sendBookingFailedAdminEmail(booking, payment) } catch (e) { console.log('Email send error (admin failed):', e && e.message ? e.message : e) }
+        try {
+          const ok = await emailService.sendBookingFailedAdminEmail(booking, payment)
+          if (!ok) console.log('Admin failed email not sent or failed (see logs)')
+        } catch (e) { console.log('Admin email failed', e && e.message ? e.message : e) }
       }
     } catch (e) {
       // Ensure we never fail the callback due to email errors
