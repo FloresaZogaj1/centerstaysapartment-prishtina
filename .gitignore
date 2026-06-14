@@ -15,3 +15,4 @@ coverage/
 backend/.env
 backend/node_modules/
 backend/dist/
+backend/scripts/local/
