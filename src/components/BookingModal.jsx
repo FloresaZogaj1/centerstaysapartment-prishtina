@@ -3,6 +3,17 @@ import BookingFormV2 from './BookingFormV2'
 
 export default function BookingModal({ isOpen, onClose, initialData }) {
   const [submitted, setSubmitted] = useState(false)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [termsError, setTermsError] = useState('')
+
+  const requireTerms = () => {
+    if (!termsAccepted) {
+      setTermsError('Please accept the Terms and Conditions before continuing.')
+      return false
+    }
+    setTermsError('')
+    return true
+  }
 
   if (!isOpen) return null
 
@@ -17,7 +28,7 @@ export default function BookingModal({ isOpen, onClose, initialData }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative max-w-3xl w-full mx-4 bg-gradient-to-br from-ivory to-white rounded-xl shadow-xl p-6" style={{border: '1px solid rgba(203,170,106,0.12)'}}>
+      <div className="relative max-w-3xl w-full mx-4 bg-gradient-to-br from-ivory to-white rounded-xl shadow-xl p-6 max-h-[90vh] overflow-y-auto" style={{border: '1px solid rgba(203,170,106,0.12)'}}>
         <button onClick={onClose} className="absolute top-3 right-3 text-gray-600">✕</button>
 
         {!submitted ? (
@@ -26,11 +37,27 @@ export default function BookingModal({ isOpen, onClose, initialData }) {
             <p className="text-sm text-gray-600 mt-1">Fill the form to check availability or contact us via WhatsApp.</p>
 
             <div className="mt-6">
-              <BookingFormV2 selectedRoom={initialData?.room || initialData} onClose={onClose} />
+              <BookingFormV2
+                selectedRoom={initialData?.room || initialData}
+                onClose={onClose}
+                termsAccepted={termsAccepted}
+                setTermsAccepted={setTermsAccepted}
+                termsError={termsError}
+                setTermsError={setTermsError}
+                requireTerms={requireTerms}
+              />
             </div>
 
             <div className="mt-4 flex items-center gap-3">
-              <a target="_blank" rel="noreferrer" href={`https://wa.me/${phone.replace(/[^0-9]/g,'')}?text=${waMessage}`} className="px-4 py-2 rounded-md bg-[#CBAA6A] text-white">Book via WhatsApp</a>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!requireTerms()) return
+                  const href = `https://wa.me/${phone.replace(/[^0-9]/g,'')}?text=${waMessage}`
+                  window.open(href, '_blank')
+                }}
+                className="px-4 py-2 rounded-md bg-[#CBAA6A] text-white"
+              >Book via WhatsApp</button>
             </div>
           </div>
         ) : (

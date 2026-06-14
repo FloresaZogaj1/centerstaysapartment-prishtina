@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { calculateBookingTotal, createBooking, createBktPayment, createBankartPayment } from '../api/bookingApi'
 import submitPaymentForm from '../utils/submitPaymentForm'
 
-export default function BookingFormV2({ selectedRoom, onClose }) {
+export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, setTermsAccepted, termsError, setTermsError, requireTerms }) {
   const [checkInDate, setCheckInDate] = useState('')
   const [checkOutDate, setCheckOutDate] = useState('')
   const [guests, setGuests] = useState(2)
@@ -16,8 +16,6 @@ export default function BookingFormV2({ selectedRoom, onClose }) {
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState(null)
   const [pendingPaymentForm, setPendingPaymentForm] = useState(null)
-  const [termsAccepted, setTermsAccepted] = useState(false)
-  const [termsError, setTermsError] = useState('')
 
   useEffect(() => {
     async function calc() {
@@ -44,12 +42,10 @@ export default function BookingFormV2({ selectedRoom, onClose }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
-    // Validate terms
-    if (!termsAccepted) {
-      setTermsError('Please accept the Terms and Conditions before continuing.')
+    // Validate terms via parent helper when available
+    if (requireTerms && !requireTerms()) {
       return
     }
-    setTermsError('')
     setSubmitting(true)
     setMessage(null)
     try {
@@ -63,7 +59,7 @@ export default function BookingFormV2({ selectedRoom, onClose }) {
         checkOutDate,
         guests: Number(guests),
         addons,
-        termsAccepted: true,
+        termsAccepted: !!termsAccepted,
       }
       const booking = await createBooking(bookingPayload)
 
