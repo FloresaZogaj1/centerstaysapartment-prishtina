@@ -16,6 +16,8 @@ export default function BookingFormV2({ selectedRoom, onClose }) {
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState(null)
   const [pendingPaymentForm, setPendingPaymentForm] = useState(null)
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [termsError, setTermsError] = useState('')
 
   useEffect(() => {
     async function calc() {
@@ -42,6 +44,12 @@ export default function BookingFormV2({ selectedRoom, onClose }) {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    // Validate terms
+    if (!termsAccepted) {
+      setTermsError('Please accept the Terms and Conditions before continuing.')
+      return
+    }
+    setTermsError('')
     setSubmitting(true)
     setMessage(null)
     try {
@@ -55,6 +63,7 @@ export default function BookingFormV2({ selectedRoom, onClose }) {
         checkOutDate,
         guests: Number(guests),
         addons,
+        termsAccepted: true,
       }
       const booking = await createBooking(bookingPayload)
 
@@ -174,8 +183,16 @@ export default function BookingFormV2({ selectedRoom, onClose }) {
       </div>
 
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={submitting} className="btn-premium px-5 py-3">{submitting ? 'Saving...' : 'Continue to Payment'}</button>
+        <button type="submit" disabled={submitting || !termsAccepted} className="btn-premium px-5 py-3">{submitting ? 'Saving...' : 'Continue to Payment'}</button>
         <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+      </div>
+
+      <div className="mt-3">
+        <label className="flex items-start gap-3">
+          <input type="checkbox" checked={termsAccepted} onChange={(e) => { setTermsAccepted(e.target.checked); if (e.target.checked) setTermsError('') }} />
+          <span className="text-sm">I accept the <a href="/terms" className="text-blue-600 underline">Terms and Conditions</a> and <a href="/privacy" className="text-blue-600 underline">Privacy Policy</a>.</span>
+        </label>
+        {termsError && <div className="text-sm text-red-600 mt-1">{termsError}</div>}
       </div>
 
       {pendingPaymentForm && (
