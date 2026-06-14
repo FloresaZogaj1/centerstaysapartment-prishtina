@@ -12,11 +12,15 @@ function createTransporter(){
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST,
     port: Number(process.env.SMTP_PORT || 587),
-    secure,
+    secure: secure,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS
-    }
+    },
+    // timeouts to avoid silent connection close
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   })
 }
 
@@ -40,14 +44,27 @@ function isEmailConfigured(){
 }
 
 async function sendTestEmail(to){
+  // Returns:
+  // - false when SMTP missing
+  // - true when sent
+  // - throws when send fails
   if (!isEmailConfigured()) {
     console.log('Email not sent: SMTP configuration missing')
     return false
   }
+
+  const transporter = createTransporter()
+  if (!transporter) {
+    console.log('Email not sent: SMTP configuration missing')
+    return false
+  }
+
   const subject = 'City Center Prishtina - SMTP test'
   const text = 'SMTP email delivery is configured correctly.'
-  const result = await sendMail({ from: process.env.EMAIL_FROM, to, subject, text })
-  return !!result
+
+  // Let errors bubble up so callers can distinguish send failures
+  const info = await transporter.sendMail({ from: process.env.EMAIL_FROM, to, subject, text })
+  return true
 }
 
 function formatDate(d){
