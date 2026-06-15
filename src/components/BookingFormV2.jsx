@@ -43,8 +43,14 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
   async function handleSubmit(e) {
     e.preventDefault()
     // Validate terms via parent helper when available
-    if (requireTerms && !requireTerms()) {
-      return
+    if (requireTerms) {
+      if (!requireTerms()) return
+    } else {
+      // fallback: ensure local termsAccepted is checked
+      if (!termsAccepted) {
+        setTermsError('Please accept the Terms and Conditions before continuing.')
+        return
+      }
     }
     setSubmitting(true)
     setMessage(null)
@@ -178,18 +184,18 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
         )}
       </div>
 
-      <div className="flex items-center gap-3">
-        <button type="submit" disabled={submitting || !termsAccepted} className="btn-premium px-5 py-3">{submitting ? 'Saving...' : 'Continue to Payment'}</button>
-        <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
-      </div>
+        <div className="mt-3">
+          <label className="flex items-start gap-3">
+            <input type="checkbox" checked={termsAccepted} onChange={(e) => { setTermsAccepted(e.target.checked); if (e.target.checked) setTermsError('') }} />
+            <span className="text-sm">I accept the <a href="/terms" className="text-blue-600 underline">Terms and Conditions</a> and <a href="/privacy" className="text-blue-600 underline">Privacy Policy</a>.</span>
+          </label>
+          {termsError && <div className="text-sm text-red-600 mt-1">{termsError}</div>}
+        </div>
 
-      <div className="mt-3">
-        <label className="flex items-start gap-3">
-          <input type="checkbox" checked={termsAccepted} onChange={(e) => { setTermsAccepted(e.target.checked); if (e.target.checked) setTermsError('') }} />
-          <span className="text-sm">I accept the <a href="/terms" className="text-blue-600 underline">Terms and Conditions</a> and <a href="/privacy" className="text-blue-600 underline">Privacy Policy</a>.</span>
-        </label>
-        {termsError && <div className="text-sm text-red-600 mt-1">{termsError}</div>}
-      </div>
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={submitting} className="btn-premium px-5 py-3">{submitting ? 'Saving...' : 'Continue to Payment'}</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
+        </div>
 
       {pendingPaymentForm && (
         <div className="mt-4 p-3 bg-yellow-50 rounded">
