@@ -48,8 +48,9 @@ export default function Rooms() {
   useEffect(() => {
     let mounted = true
     async function load() {
-      setLoading(true)
       try {
+        setLoading(true)
+        setError('')
         const data = await getRooms()
         if (!mounted) return
         // Some backends may return an object { value: [...] } or the array directly.
@@ -68,8 +69,8 @@ export default function Rooms() {
         }))
         setRooms(mapped)
       } catch (err) {
-        console.error('Failed to load rooms:', err)
-        setError(err.message || 'Failed to load rooms')
+        console.error('Rooms fetch failed:', err)
+        setError(err.message || 'Failed to load rooms.')
       } finally {
         setLoading(false)
       }
@@ -105,7 +106,14 @@ export default function Rooms() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {loading && <div>Loading rooms...</div>}
-        {error && <div className="text-red-500">{error}</div>}
+        {error && (
+          <div className="space-y-3">
+            <div className="text-red-500">{error}</div>
+            <div>
+              <button onClick={() => { setError(''); (async () => { setLoading(true); try { const data = await getRooms(); const list = Array.isArray(data) ? data : (data.value || []); const mapped = list.map(r => ({ _id: r._id, id: r._id, name: r.name, description: r.description, price: r.basePricePerNight ? `€${r.basePricePerNight} / nata` : '', basePricePerNight: r.basePricePerNight, features: r.amenities || [], image: r.imageUrl || (groups[r.slug] ? groups[r.slug][0] : groups.standard[0]), raw: r })); setRooms(mapped); } catch (err) { console.error('Rooms fetch failed:', err); setError(err.message || 'Failed to load rooms.'); } finally { setLoading(false); } })() }} className="px-4 py-2 bg-gray-200 rounded">Retry</button>
+            </div>
+          </div>
+        )}
         {!loading && !error && rooms.map((r) => {
           const imgs = groups[r.slug] || groups.standard
           const roomWithImage = { ...r, image: r.image || imgs[0] }
@@ -114,6 +122,9 @@ export default function Rooms() {
             <ApartmentCard key={r.id} room={roomWithImage} images={imgs} onOpenGallery={() => openGalleryForRoom(r.id, 0, r.name, r.raw)} onBook={() => openBookingForRoom(r.raw)} />
           )
         })}
+        {!loading && !error && rooms.length === 0 && (
+          <div className="text-gray-700">No rooms available right now.</div>
+        )}
       </div>
 
       {/* Removed the 'Shiko të gjitha dhomat' button as per simplified UX */}

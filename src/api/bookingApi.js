@@ -1,11 +1,28 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"
 
 async function getRooms() {
-  const response = await fetch(`${API_BASE_URL}/rooms`)
-  if (!response.ok) {
-    throw new Error(`Failed to load rooms: ${response.status}`)
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 12000)
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/rooms`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`Rooms request failed with status ${response.status}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error('Rooms request timed out. The server may be waking up. Please retry.')
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
   }
-  return response.json()
 }
 
 async function calculateBookingTotal(data) {
