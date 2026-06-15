@@ -1,6 +1,14 @@
 export default function submitPaymentForm ({ action, fields, method = 'POST' }) {
+  // Safe debug: log action and field names only (do not log values or secrets)
+  try {
+    console.log('Submitting BKT form to:', action)
+    console.log('BKT form field names:', Object.keys(fields || {}))
+  } catch (e) {
+    // don't let logging fail the submit
+  }
+
   const form = document.createElement('form')
-  form.method = method
+  form.method = method || 'POST'
   form.action = action
   form.style.display = 'none'
 

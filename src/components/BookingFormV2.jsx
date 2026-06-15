@@ -201,7 +201,13 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
         <div className="mt-4 p-3 bg-yellow-50 rounded">
           <div className="mb-2 font-medium">BKT payment form is ready. Continue to bank payment.</div>
           <div className="flex gap-3">
-            <button type="button" onClick={() => submitPaymentForm(pendingPaymentForm)} className="px-4 py-2 bg-blue-600 text-white rounded">Continue to bank payment</button>
+            <button type="button" onClick={() => {
+              try {
+                console.log('Preparing to submit BKT form', { action: pendingPaymentForm.action, method: pendingPaymentForm.method, fieldNames: Object.keys(pendingPaymentForm.fields || {}) })
+              } catch (e) {}
+              // Ensure we use POST form submit
+              submitPaymentForm(pendingPaymentForm)
+            }} className="px-4 py-2 bg-blue-600 text-white rounded">Continue to bank payment</button>
             <button type="button" onClick={() => { setPendingPaymentForm(null); setMessage('Payment cancelled by user.') }} className="px-4 py-2 border rounded">Cancel</button>
           </div>
         </div>
