@@ -126,8 +126,9 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
   } catch (e) {
     // fallback: leave endpointBase as-is
   }
-  // API key must be URL-encoded in the path (e.g., '|' -> '%7C')
-  const encodedApiKey = encodeURIComponent(apiKey)
+  // Decide whether to encode API key in path. Default: true. Can be toggled via env for testing.
+  const encodeToggle = String(process.env.NLB_BANKART_ENCODE_API_KEY_IN_PATH || 'true').toLowerCase() !== 'false'
+  const encodedApiKey = encodeToggle ? encodeURIComponent(apiKey) : apiKey
   const endpointPath = `/api/v3/transaction/${encodedApiKey}/debit`
   const endpoint = `${endpointBase}${endpointPath}`
 
@@ -138,9 +139,10 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
       base = base.replace(/\/$/, '')
       base = base.replace(/\/api\/v3\/transaction$/i, '')
     } catch (e) {}
-    const enc = encodeURIComponent(apiKeyParam || apiKey)
-    const path = `/api/v3/transaction/${enc}/debit`
-    return { endpointPath: path, endpoint: `${base}${path}` }
+    const encodeToggleLocal = String(process.env.NLB_BANKART_ENCODE_API_KEY_IN_PATH || 'true').toLowerCase() !== 'false'
+    const finalApiKey = encodeToggleLocal ? encodeURIComponent(apiKeyParam || apiKey) : (apiKeyParam || apiKey)
+    const path = `/api/v3/transaction/${finalApiKey}/debit`
+    return { endpointPath: path, endpoint: `${base}${path}`, encodedApiKey: encodeToggleLocal }
   }
 
   // attach helper to function for external use in diagnostics
@@ -167,12 +169,26 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
       'X-Signature': signature,
     }
 
-    // Send the exact JSON string used for signing to guarantee byte-for-byte equality
-    const resp = await axios.post(endpoint, bodyString, {
-      headers,
-      auth: authUsername && authPassword ? { username: authUsername, password: authPassword } : undefined,
-      timeout: 15000,
-    })
+      // Diagnostic log (safe): final endpoint, request URI, apiKey length and SIM indicator, encodedApiKey flag, mode
+      try {
+        const apiKeyRaw = String(apiKey || '')
+        const hasSim = apiKeyRaw.includes('-SIM')
+        console.log('[bankartService] about to POST to Bankart', {
+          endpoint,
+          requestUri: endpointPath,
+          apiKeyLength: apiKeyRaw.length,
+          apiKeyContainsSIM: hasSim,
+          encodedApiKey: encodeToggle,
+          mode: config.mode || process.env.NLB_BANKART_MODE || '(unset)'
+        })
+      } catch (e) {}
+
+      // Send the exact JSON string used for signing to guarantee byte-for-byte equality
+      const resp = await axios.post(endpoint, bodyString, {
+        headers,
+        auth: authUsername && authPassword ? { username: authUsername, password: authPassword } : undefined,
+        timeout: 15000,
+      })
 
     const data = resp && resp.data || {}
     if (data && data.returnType === 'REDIRECT' && data.redirectUrl) {
@@ -207,9 +223,11 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
     // Construct structured error for controller consumption
     if (err && err.response) {
       const data = err.response.data || {}
-      return { session: null, error: { code: 'provider_error', httpStatus: err.response.status, providerCode: data.code || data.error || null, providerMessage: data.message || data.error_description || null, endpoint } }
+      const computeDebug = createBankartPaymentSession.computeEndpointForApiKey(apiKey)
+      return { session: null, error: { code: 'provider_error', httpStatus: err.response.status, providerCode: data.code || data.error || null, providerMessage: data.message || data.error_description || null, endpoint: computeDebug && computeDebug.endpoint, encodedApiKey: computeDebug && computeDebug.encodedApiKey } }
     }
-    return { session: null, error: { code: 'network_error', message: String(err && err.message || 'unknown'), endpoint } }
+    const computeDebug = createBankartPaymentSession.computeEndpointForApiKey(apiKey)
+    return { session: null, error: { code: 'network_error', message: String(err && err.message || 'unknown'), endpoint: computeDebug && computeDebug.endpoint, encodedApiKey: computeDebug && computeDebug.encodedApiKey } }
   }
 }
 

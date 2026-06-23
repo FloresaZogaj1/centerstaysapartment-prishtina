@@ -28,7 +28,15 @@ axios.post = async (endpoint, data, opts) => {
   console.log('[mockCreatePaymentTest] Mock bodyString (sent):', bodyStringSent.slice(0, 200))
 
   // Assert endpoint is exactly the expected non-duplicated endpoint
-  const expectedEndpoint = 'https://gateway.bankart.si/api/v3/transaction/210844%7CP021844-SIM/debit'
+  // Compute expected endpoint using the service helper so we match encodeToggle behavior
+  let expectedEndpoint = null
+  try {
+    if (bankartService && bankartService.createBankartPaymentSession && bankartService.createBankartPaymentSession.computeEndpointForApiKey) {
+      const ep = bankartService.createBankartPaymentSession.computeEndpointForApiKey(process.env.NLB_BANKART_API_KEY || '210844|P021844-SIM')
+      expectedEndpoint = ep && ep.endpoint
+    }
+  } catch (e) {}
+  if (!expectedEndpoint) expectedEndpoint = 'https://gateway.bankart.si/api/v3/transaction/210844%7CP021844-SIM/debit'
   if (String(endpoint) !== expectedEndpoint) {
     console.error('[mockCreatePaymentTest] Endpoint mismatch. Expected:', expectedEndpoint, 'Got:', endpoint)
     process.exit(2)
