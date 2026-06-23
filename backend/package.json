@@ -4,9 +4,10 @@
   "private": true,
   "main": "src/server.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js",
-    "seed": "node src/seedRooms.js"
+  "dev": "nodemon src/server.js",
+  "start": "node src/server.js",
+  "seed": "node src/seedRooms.js",
+  "test:bankart-signature": "node test/bankartSignatureTest.js"
   },
   "dependencies": {
     "axios": "^1.5.0",

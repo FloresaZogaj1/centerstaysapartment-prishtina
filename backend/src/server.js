@@ -16,7 +16,16 @@ const app = express()
 
 // Middleware
 app.use(helmet())
-app.use(express.json())
+// Capture raw request body for webhook signature verification
+app.use(express.json({
+	verify: (req, res, buf) => {
+		try {
+			req.rawBody = buf && buf.toString && buf.toString('utf8')
+		} catch (e) {
+			req.rawBody = undefined
+		}
+	}
+}))
 // Required for parsing form POSTS from payment gateways
 app.use(express.urlencoded({ extended: true }))
 app.use(morgan('dev'))

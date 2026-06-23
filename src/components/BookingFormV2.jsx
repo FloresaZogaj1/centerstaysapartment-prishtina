@@ -16,6 +16,7 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState(null)
   const [pendingPaymentForm, setPendingPaymentForm] = useState(null)
+  const [provider, setProvider] = useState('bkt') // 'bkt' or 'nlb_bankart'
 
   useEffect(() => {
     async function calc() {
@@ -69,36 +70,47 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
       }
       const booking = await createBooking(bookingPayload)
 
-      // Create BKT payment form (3D_PAY_HOSTING)
-      try {
-        const bktRes = await createBktPayment(booking._id)
-        if (bktRes && bktRes.form && bktRes.form.action && bktRes.form.fields) {
-          const form = { action: bktRes.form.action, method: bktRes.form.method || 'POST', fields: bktRes.form.fields }
-          // Auto-submit only when VITE_AUTO_SUBMIT_PAYMENT is enabled in environment (production).
-          // Keep manual confirmation in development to avoid accidental redirects to the bank.
-          const shouldAutoSubmit = import.meta.env.VITE_AUTO_SUBMIT_PAYMENT === 'true'
-          if (shouldAutoSubmit) {
-            // Do not modify any booking/payment status here; backend will mark payment after callback verification.
-            submitPaymentForm(form)
-            // Inform the user that they're being redirected to the bank
-            setMessage('Booking saved. Redirecting to bank for payment...')
+      // Payment provider flows
+      if (provider === 'bkt') {
+        try {
+          const bktRes = await createBktPayment(booking._id)
+          if (bktRes && bktRes.form && bktRes.form.action && bktRes.form.fields) {
+            const form = { action: bktRes.form.action, method: bktRes.form.method || 'POST', fields: bktRes.form.fields }
+            const shouldAutoSubmit = import.meta.env.VITE_AUTO_SUBMIT_PAYMENT === 'true'
+            if (shouldAutoSubmit) {
+              submitPaymentForm(form)
+              setMessage('Booking saved. Redirecting to bank for payment...')
+              return
+            }
+            setPendingPaymentForm(form)
+            setMessage('Booking saved. Payment form is ready.')
             return
           }
-
-          // Development / manual flow: keep the form in state and show confirmation button
-          setPendingPaymentForm(form)
-          setMessage('Booking saved. Payment form is ready.')
-          return
+          // If BKT didn't return form data, fallthrough to error handler
+        } catch (err) {
+          console.error('BKT payment creation failed:', err)
+          setMessage('Booking saved. BKT payment creation failed.')
         }
-      } catch (err) {
-        console.error('BKT payment creation failed:', err)
-        // fallback: show Bankart placeholder message
-        const paymentRes = await createBankartPayment(booking._id)
-        if (paymentRes.redirectUrl) {
-          window.location.href = paymentRes.redirectUrl
-          return
+      } else if (provider === 'nlb_bankart') {
+        try {
+          const bankRes = await createBankartPayment(booking._id)
+          if (bankRes && bankRes.session) {
+            const s = bankRes.session
+            if (s.redirectUrl) {
+              window.location.href = s.redirectUrl
+              return
+            }
+            if (s.form && s.form.action && s.form.fields) {
+              submitPaymentForm({ action: s.form.action, method: s.form.method || 'POST', fields: s.form.fields })
+              setMessage('Booking saved. Redirecting to Bankart...')
+              return
+            }
+          }
+          setMessage('Booking saved. Bankart session could not be created.')
+        } catch (err) {
+          console.error('Bankart payment creation failed:', err)
+          setMessage('Booking saved. Bankart payment creation failed.')
         }
-        setMessage('Booking saved. Bankart payment integration is pending.')
       }
     } catch (err) {
       console.error(err)
@@ -193,6 +205,13 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <label className="text-sm">Payment provider:</label>
+            <select value={provider} onChange={e => setProvider(e.target.value)} className="p-2 border rounded">
+              <option value="bkt">BKT (NestPay)</option>
+              <option value="nlb_bankart">NLB / Bankart</option>
+            </select>
+          </div>
           <button type="submit" disabled={submitting} className="btn-premium px-5 py-3">{submitting ? 'Saving...' : 'Continue to Payment'}</button>
           <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancel</button>
         </div>
