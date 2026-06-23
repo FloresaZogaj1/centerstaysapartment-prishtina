@@ -57,11 +57,16 @@ async function createBankartPayment(bookingId) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ bookingId }),
   })
+  const text = await res.text()
+  let json = null
+  try { json = text && text.length ? JSON.parse(text) : null } catch (e) { json = null }
   if (!res.ok) {
-    const err = await res.text()
-    throw new Error(err || 'Failed to create payment')
+    const errMsg = (json && json.error && (json.error.providerMessage || json.error.message)) || (json && json.message) || text || `Failed to create payment (status ${res.status})`
+    const error = new Error(errMsg)
+    error.details = json || { text }
+    throw error
   }
-  return res.json()
+  return json || {}
 }
 
 async function createBktPayment(bookingId) {

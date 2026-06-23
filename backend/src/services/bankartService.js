@@ -95,37 +95,21 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
   // Create JSON string for request body - must be stable (no extra spaces)
   const bodyString = JSON.stringify(payload)
 
-  // Safety: if running in live mode ensure config.confirmed and required urls present
-  if (config.mode === 'live') {
-    if (!config.confirmed) {
-      return { redirectUrl: null, form: null, error: 'Bankart live mode disabled: implementation not confirmed in server environment' }
-    }
-    if (!config.postUrl || !config.sharedSecret) {
-      return { redirectUrl: null, form: null, error: 'Bankart live mode disabled: missing NLB_BANKART_POST_URL or NLB_BANKART_SHARED_SECRET' }
-    }
+  // Safety checks:
+  // - If mode is 'live' and not explicitly confirmed, block the live flow.
+  if (config.mode === 'live' && !config.confirmed) {
+    return { session: null, error: { code: 'not_confirmed', message: 'Bankart live mode disabled: implementation not confirmed in server environment' } }
   }
-  // If live mode not enabled, return the prepared form metadata but DO NOT
-  // perform a network call. This keeps secrets safe in non-live/dev.
-  if (config.mode !== 'live' || !config.confirmed) {
-    return {
-      session: {
-        form: {
-          action: config.postUrl || process.env.NLB_BANKART_POST_URL || null,
-          method: 'POST',
-          fields: {
-            merchantTransactionId: payload.merchantTransactionId,
-            amount: payload.amount,
-            currency: payload.currency,
-            successUrl: payload.successUrl,
-            cancelUrl: payload.cancelUrl,
-            callbackUrl: payload.callbackUrl,
-            customerEmail: payload.customer.email,
-            apiKey: config.apiKey || process.env.NLB_BANKART_API_KEY,
-          }
-        }
-      },
-      note: 'Bankart live POST is disabled; returning form metadata for testing.'
-    }
+
+  // For both 'test' and confirmed 'live' modes we perform a real server-side POST.
+  // Ensure required env vars are present before attempting the network call.
+  const apiKeyEnv = config.apiKey || process.env.NLB_BANKART_API_KEY
+  const postUrlEnv = config.postUrl || process.env.NLB_BANKART_POST_URL
+  const sharedSecretEnv = config.sharedSecret || process.env.NLB_BANKART_SHARED_SECRET
+  if (!postUrlEnv || !apiKeyEnv || !sharedSecretEnv) {
+    // Indicate which env is missing
+    const missing = !postUrlEnv ? 'NLB_BANKART_POST_URL' : (!apiKeyEnv ? 'NLB_BANKART_API_KEY' : 'NLB_BANKART_SHARED_SECRET')
+    return { session: null, error: { code: 'missing_env', message: 'Missing required Bankart environment variable', missingEnv: missing } }
   }
 
   // Perform server-side POST to Bankart v3 transaction debit endpoint
@@ -146,6 +130,18 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
   const encodedApiKey = encodeURIComponent(apiKey)
   const endpointPath = `/api/v3/transaction/${encodedApiKey}/debit`
   const endpoint = `${endpointBase}${endpointPath}`
+
+  // Helper: expose computed endpoint for logging/diagnostics (safe value)
+  function computeEndpointForApiKey (apiKeyParam) {
+    let base = config.postUrl || process.env.NLB_BANKART_POST_URL || ''
+    try {
+      base = base.replace(/\/$/, '')
+      base = base.replace(/\/api\/v3\/transaction$/i, '')
+    } catch (e) {}
+    const enc = encodeURIComponent(apiKeyParam || apiKey)
+    const path = `/api/v3/transaction/${enc}/debit`
+    return { endpointPath: path, endpoint: `${base}${path}` }
+  }
 
   const contentType = 'application/json; charset=utf-8'
   const date = new Date().toUTCString()
@@ -205,7 +201,12 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
     } catch (e) {
       console.error('[bankartService] create transaction error (sanitized): unknown error')
     }
-    return { session: null, error: 'Bankart transaction creation failed' }
+    // Construct structured error for controller consumption
+    if (err && err.response) {
+      const data = err.response.data || {}
+      return { session: null, error: { code: 'provider_error', httpStatus: err.response.status, providerCode: data.code || data.error || null, providerMessage: data.message || data.error_description || null, endpoint } }
+    }
+    return { session: null, error: { code: 'network_error', message: String(err && err.message || 'unknown'), endpoint } }
   }
 }
 

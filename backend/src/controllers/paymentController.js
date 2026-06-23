@@ -34,10 +34,37 @@ const createBankartPayment = async (req, res) => {
     // Create session with guard: service may return { error } if not configured
     const session = await bankartService.createBankartPaymentSession({ booking, payment, urls })
 
+    // Safe status/logging for Render: presence of envs (do not log values)
+    try {
+      console.log('[createBankartPayment] NLB_BANKART_MODE=', process.env.NLB_BANKART_MODE || '(unset)')
+      console.log('[createBankartPayment] NLB_BANKART_API_KEY exists=', !!(process.env.NLB_BANKART_API_KEY || process.env.NLB_BANKART_API_KEY === '') ? !!process.env.NLB_BANKART_API_KEY : false)
+      console.log('[createBankartPayment] NLB_BANKART_SHARED_SECRET exists=', !!process.env.NLB_BANKART_SHARED_SECRET)
+      console.log('[createBankartPayment] NLB_BANKART_API_USERNAME exists=', !!process.env.NLB_BANKART_API_USERNAME)
+      console.log('[createBankartPayment] NLB_BANKART_API_PASSWORD exists=', !!process.env.NLB_BANKART_API_PASSWORD)
+      // compute final endpoint safely (uses service helper indirectly)
+      const ep = bankartService && bankartService.buildSignatureV3 ? null : null
+    } catch (e) {}
+
     if (session && session.error) {
-      // Sanitize: only log the high-level reason, avoid logging secrets/headers/body
-      console.log('[createBankartPayment] bankart session disabled or not configured:', String(session.error).slice(0, 200))
-      return res.status(503).json({ message: 'Bankart provider not available', reason: session.error })
+      const err = session.error
+      // session.error may be structured from service
+      const status = (err && err.httpStatus) || (err && err.status) || null
+      const providerMessage = (err && err.providerMessage) || (err && err.message) || null
+      const missingEnv = (err && err.missingEnv) || null
+
+      // Log safe info for Render
+      console.log('[createBankartPayment] merchantTransactionId=%s bookingId=%s paymentId=%s', String(payment._id), String(booking._id), String(payment._id))
+      if (status) console.log('[createBankartPayment] bankart httpStatus=', status)
+      if (providerMessage) console.log('[createBankartPayment] bankart providerMessage=', String(providerMessage).slice(0,200))
+      if (missingEnv) console.log('[createBankartPayment] missingEnv=', missingEnv)
+
+      // Build a safe client response
+      const clientError = { code: err.code || 'bankart_unavailable' }
+      if (status) clientError.httpStatus = status
+      if (providerMessage) clientError.providerMessage = providerMessage
+      if (missingEnv) clientError.missingEnv = missingEnv
+
+      return res.status(status || 503).json({ message: 'Bankart provider not available', error: clientError })
     }
 
     // Allowed log fields: provider, bookingId, paymentId, amount, currency, merchantOrderId

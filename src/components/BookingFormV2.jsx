@@ -106,10 +106,14 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
               return
             }
           }
+          // If backend returned a structured error, display its message
           setMessage('Booking saved. Bankart session could not be created.')
         } catch (err) {
           console.error('Bankart payment creation failed:', err)
-          setMessage('Booking saved. Bankart payment creation failed.')
+          // Prefer backend-provided message if available
+          const backendMessage = err && err.message ? err.message : null
+          const backendDetails = err && err.details && err.details.error && (err.details.error.providerMessage || err.details.error.message)
+          setMessage('Booking saved. ' + (backendDetails || backendMessage || 'Bankart payment creation failed.'))
         }
       }
     } catch (err) {

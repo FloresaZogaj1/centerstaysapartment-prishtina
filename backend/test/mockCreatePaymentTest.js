@@ -3,11 +3,11 @@
 // - Reloads bankart modules after setting env so config validation runs with our test values
 // - Verifies that createBankartPaymentSession returns a redirectUrl when the gateway returns returnType: 'REDIRECT'
 
-process.env.NLB_BANKART_MODE = 'live'
+process.env.NLB_BANKART_MODE = 'test'
 process.env.NLB_BANKART_API_KEY = '210844|P021844-SIM'
 process.env.NLB_BANKART_SHARED_SECRET = process.env.NLB_BANKART_SHARED_SECRET || 'test-shared-secret'
 process.env.NLB_BANKART_PUBLIC_INTEGRATION_KEY = 'public-key-placeholder'
-process.env.NLB_BANKART_POST_URL = process.env.NLB_BANKART_POST_URL || 'https://gateway.bankart.si/api/v3/transaction'
+process.env.NLB_BANKART_POST_URL = process.env.NLB_BANKART_POST_URL || 'https://gateway.bankart.si'
 process.env.NLB_BANKART_CALLBACK_URL = process.env.NLB_BANKART_CALLBACK_URL || 'https://example.com/callback'
 process.env.NLB_BANKART_SUCCESS_URL = process.env.NLB_BANKART_SUCCESS_URL || 'https://example.com/success'
 process.env.NLB_BANKART_FAIL_URL = process.env.NLB_BANKART_FAIL_URL || 'https://example.com/fail'
