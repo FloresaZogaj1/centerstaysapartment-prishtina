@@ -32,6 +32,22 @@ const createBankartPayment = async (req, res) => {
     }
 
     // Create session with guard: service may return { error } if not configured
+    // Diagnostic logs (safe): mode and presence of critical envs
+    try {
+      console.log('[createBankartPayment] NLB_BANKART_MODE=', process.env.NLB_BANKART_MODE || '(unset)')
+      console.log('[createBankartPayment] NLB_BANKART_CONFIRMED_IMPLEMENTATION=', String(process.env.NLB_BANKART_CONFIRMED_IMPLEMENTATION || 'false'))
+      console.log('[createBankartPayment] NLB_BANKART_API_KEY exists=', !!process.env.NLB_BANKART_API_KEY)
+      console.log('[createBankartPayment] NLB_BANKART_SHARED_SECRET exists=', !!process.env.NLB_BANKART_SHARED_SECRET)
+      console.log('[createBankartPayment] NLB_BANKART_API_USERNAME exists=', !!process.env.NLB_BANKART_API_USERNAME)
+      console.log('[createBankartPayment] NLB_BANKART_API_PASSWORD exists=', !!process.env.NLB_BANKART_API_PASSWORD)
+      console.log('[createBankartPayment] NLB_BANKART_POST_URL=', process.env.NLB_BANKART_POST_URL || config && config.postUrl || '(unset)')
+      // compute endpoint safely if possible
+      if (bankartService && bankartService.createBankartPaymentSession && bankartService.createBankartPaymentSession.computeEndpointForApiKey) {
+        const ep = bankartService.createBankartPaymentSession.computeEndpointForApiKey(process.env.NLB_BANKART_API_KEY || '')
+        console.log('[createBankartPayment] computed endpoint=', ep && ep.endpoint)
+      }
+    } catch (e) {}
+
     const session = await bankartService.createBankartPaymentSession({ booking, payment, urls })
 
     // Safe status/logging for Render: presence of envs (do not log values)
@@ -52,11 +68,12 @@ const createBankartPayment = async (req, res) => {
       const providerMessage = (err && err.providerMessage) || (err && err.message) || null
       const missingEnv = (err && err.missingEnv) || null
 
-      // Log safe info for Render
+  // Log safe info for Render
       console.log('[createBankartPayment] merchantTransactionId=%s bookingId=%s paymentId=%s', String(payment._id), String(booking._id), String(payment._id))
       if (status) console.log('[createBankartPayment] bankart httpStatus=', status)
       if (providerMessage) console.log('[createBankartPayment] bankart providerMessage=', String(providerMessage).slice(0,200))
       if (missingEnv) console.log('[createBankartPayment] missingEnv=', missingEnv)
+  if (err && err.code) console.log('[createBankartPayment] serviceErrorCode=', err.code)
 
       // Build a safe client response
       const clientError = { code: err.code || 'bankart_unavailable' }

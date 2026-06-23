@@ -143,6 +143,9 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
     return { endpointPath: path, endpoint: `${base}${path}` }
   }
 
+  // attach helper to function for external use in diagnostics
+  createBankartPaymentSession.computeEndpointForApiKey = computeEndpointForApiKey
+
   const contentType = 'application/json; charset=utf-8'
   const date = new Date().toUTCString()
 
