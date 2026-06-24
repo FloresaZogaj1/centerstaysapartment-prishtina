@@ -107,6 +107,19 @@ const handleBktCallback = async (req, res) => {
     await payment.save()
     await booking.save()
 
+    // Generate and send invoice (idempotent). Don't block callback on invoice failures.
+    try {
+      if (payment.status === 'paid') {
+        const invoiceService = require('../services/invoiceService')
+        try {
+          const inv = await invoiceService.generateAndSendInvoice(booking, payment)
+          if (!inv || !inv.ok) console.log('[handleBktCallback] invoice generation/send result:', inv)
+        } catch (e) { console.log('[handleBktCallback] invoice service error:', e && e.message ? e.message : e) }
+      }
+    } catch (e) {
+      console.log('[handleBktCallback] invoice handling unexpected error:', e && e.message ? e.message : e)
+    }
+
     // Send notification emails (do not let email failures affect callback response)
     try {
       if (payment.status === 'paid') {

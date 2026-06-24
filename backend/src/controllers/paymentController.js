@@ -147,6 +147,22 @@ const bankartCallback = async (req, res) => {
       }
     }
 
+    // Generate and send invoice (idempotent). Don't block callback on invoice failures.
+    try {
+      if (payment.status === 'paid' && payment.booking) {
+        const booking = await Booking.findById(payment.booking)
+        if (booking) {
+          const invoiceService = require('../services/invoiceService')
+          try {
+            const inv = await invoiceService.generateAndSendInvoice(booking, payment)
+            if (!inv || !inv.ok) console.log('[Bankart Callback] invoice generation/send result:', inv)
+          } catch (e) { console.log('[Bankart Callback] invoice service error:', e && e.message ? e.message : e) }
+        }
+      }
+    } catch (e) {
+      console.log('[Bankart Callback] invoice handling unexpected error:', e && e.message ? e.message : e)
+    }
+
     // Respond with exact content expected by Bankart
     res.set('Content-Type', 'text/plain')
     return res.status(200).send('OK')

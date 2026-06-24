@@ -14,6 +14,9 @@ const PaymentSchema = new mongoose.Schema(
     bankartOrderId: { type: String },
     bankartTransactionId: { type: String },
     rawResponse: { type: Object },
+    // Invoice metadata to ensure idempotent invoice sending
+    invoiceNumber: { type: String },
+    invoiceSentAt: { type: Date }
   },
   { timestamps: true }
 )

@@ -216,6 +216,8 @@ module.exports = {
   sendBookingPaidAdminEmail,
   sendBookingFailedCustomerEmail,
   sendBookingFailedAdminEmail,
+  // lower-level sendMail used by invoice service
+  sendMail,
   isEmailConfigured,
   sendTestEmail
 }

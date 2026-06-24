@@ -13,6 +13,7 @@ import BlogPage from './pages/BlogPage'
 import Kontakti from './pages/Kontakti'
 import PaymentSuccess from './pages/PaymentSuccess'
 import PaymentFail from './pages/PaymentFail'
+import PaymentCancel from './pages/PaymentCancel'
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="/kontakti" element={<Kontakti />} />
               <Route path="/payment/success" element={<PaymentSuccess />} />
               <Route path="/payment/fail" element={<PaymentFail />} />
+              <Route path="/payment/cancel" element={<PaymentCancel />} />
             </Routes>
           </main>
           <Footer />
