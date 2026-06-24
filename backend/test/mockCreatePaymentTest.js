@@ -4,7 +4,7 @@
 // - Verifies that createBankartPaymentSession returns a redirectUrl when the gateway returns returnType: 'REDIRECT'
 
 process.env.NLB_BANKART_MODE = 'test'
-process.env.NLB_BANKART_API_KEY = '210844|P021844-SIM'
+process.env.NLB_BANKART_API_KEY = '210844IP021844-SIM'
 process.env.NLB_BANKART_SHARED_SECRET = process.env.NLB_BANKART_SHARED_SECRET || 'test-shared-secret'
 process.env.NLB_BANKART_PUBLIC_INTEGRATION_KEY = 'public-key-placeholder'
 process.env.NLB_BANKART_POST_URL = process.env.NLB_BANKART_POST_URL || 'https://gateway.bankart.si'
@@ -32,11 +32,11 @@ axios.post = async (endpoint, data, opts) => {
   let expectedEndpoint = null
   try {
     if (bankartService && bankartService.createBankartPaymentSession && bankartService.createBankartPaymentSession.computeEndpointForApiKey) {
-      const ep = bankartService.createBankartPaymentSession.computeEndpointForApiKey(process.env.NLB_BANKART_API_KEY || '210844|P021844-SIM')
+    const ep = bankartService.createBankartPaymentSession.computeEndpointForApiKey(process.env.NLB_BANKART_API_KEY || '210844IP021844-SIM')
       expectedEndpoint = ep && ep.endpoint
     }
   } catch (e) {}
-  if (!expectedEndpoint) expectedEndpoint = 'https://gateway.bankart.si/api/v3/transaction/210844%7CP021844-SIM/debit'
+  if (!expectedEndpoint) expectedEndpoint = 'https://gateway.bankart.si/api/v3/transaction/210844IP021844-SIM/debit'
   if (String(endpoint) !== expectedEndpoint) {
     console.error('[mockCreatePaymentTest] Endpoint mismatch. Expected:', expectedEndpoint, 'Got:', endpoint)
     process.exit(2)

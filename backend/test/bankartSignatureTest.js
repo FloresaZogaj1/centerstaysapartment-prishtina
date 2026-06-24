@@ -4,7 +4,7 @@ const crypto = require('crypto')
 // Quick unit test for signature helper
 function makeTest() {
   const secret = process.env.NLB_BANKART_SHARED_SECRET || 'test-shared-secret'
-  const apiKey = '210844|P021844'
+  const apiKey = '210844IP021844'
   const encodedApiKey = encodeURIComponent(apiKey)
   const endpointPath = `/api/v3/transaction/${encodedApiKey}/debit`
   const payload = {
@@ -28,7 +28,7 @@ function makeTest() {
   console.log('Generated signature:', expectedSig)
 
   // Assertions for canonical values
-  if (endpointPath !== '/api/v3/transaction/210844%7CP021844/debit') {
+  if (endpointPath !== '/api/v3/transaction/210844IP021844/debit') {
     console.error('Endpoint path canonicalization failed:', endpointPath)
     process.exit(2)
   }
