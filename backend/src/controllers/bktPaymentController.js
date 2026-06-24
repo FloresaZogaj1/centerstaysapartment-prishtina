@@ -27,6 +27,16 @@ const createBktPayment = async (req, res) => {
 
     const form = nestpay.create3DPayHostingFields({ booking, payment })
 
+    // Safe diagnostic logs: show which customer-facing URLs are being sent to BKT
+    try {
+      const fields = form && form.fields ? form.fields : {}
+      const okUrl = fields.okUrl || fields.okURL || fields.successUrl || fields.successURL || fields.returnUrl || fields.shopurl || fields.successUrl
+      const failUrl = fields.failUrl || fields.failURL || fields.errorUrl || fields.failurl || fields.failUrl
+      const callbackUrl = fields.callbackUrl || fields.callbackURL || fields.callbackurl || fields.callbackUrl
+      console.log('[createBktPayment] BKT redirect fields being sent (safe): okUrl=%s failUrl=%s callbackUrl=%s bookingId=%s orderId=%s',
+        String(okUrl || '(unset)'), String(failUrl || '(unset)'), String(callbackUrl || '(unset)'), String(booking._id), String(fields.oid || fields.OID || fields.OrderId || fields.orderId || '(unset)'))
+    } catch (e) { /* swallow logging errors */ }
+
     return res.json({
       message: 'BKT NestPay payment form created.',
       form: {
