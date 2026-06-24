@@ -173,13 +173,27 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
       try {
         const apiKeyRaw = String(apiKey || '')
         const hasSim = apiKeyRaw.includes('-SIM')
-        console.log('[bankartService] about to POST to Bankart', {
+        // Build safe truncated api key (last 4 characters only)
+        const apiKeySafe = apiKeyRaw.length > 4 ? `****${apiKeyRaw.slice(-4)}` : apiKeyRaw
+        // Resolve urls from payload for logging
+        const successUrl = payload.successUrl
+        const failUrl = payload.cancelUrl || payload.errorUrl
+        const cancelUrl = payload.cancelUrl
+        const callbackUrl = payload.callbackUrl
+
+        console.log('[bankartService] about to POST to Bankart (safe):', {
+          apiKeyLast4: apiKeySafe,
+          mode: config.mode || process.env.NLB_BANKART_MODE || '(unset)',
           endpoint,
           requestUri: endpointPath,
-          apiKeyLength: apiKeyRaw.length,
-          apiKeyContainsSIM: hasSim,
           encodedApiKey: encodeToggle,
-          mode: config.mode || process.env.NLB_BANKART_MODE || '(unset)'
+          successUrl: String(successUrl || '(unset)'),
+          failUrl: String(failUrl || '(unset)'),
+          cancelUrl: String(cancelUrl || '(unset)'),
+          callbackUrl: String(callbackUrl || '(unset)'),
+          merchantTransactionId: orderId,
+          bookingId: booking && booking._id ? String(booking._id) : null,
+          paymentId: payment && payment._id ? String(payment._id) : null
         })
       } catch (e) {}
 
