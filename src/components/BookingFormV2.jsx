@@ -94,6 +94,22 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
       } else if (provider === 'nlb_bankart') {
         try {
           const bankRes = await createBankartPayment(booking._id)
+          // Dev-only logs
+          if (import.meta.env.DEV) {
+            try {
+              console.log('[BookingFormV2] bankart create response keys:', Object.keys(bankRes || {}))
+              console.log('[BookingFormV2] bankart has redirectUrl=', Boolean(bankRes && bankRes.redirectUrl))
+            } catch (e) {}
+          }
+
+          // Preferred shape: top-level success + redirectUrl
+          if (bankRes && bankRes.success && bankRes.redirectUrl) {
+            // Full browser redirect to the provider HPP
+            window.location.href = bankRes.redirectUrl
+            return
+          }
+
+          // Backwards-compatible: older shape may return session.redirectUrl or form
           if (bankRes && bankRes.session) {
             const s = bankRes.session
             if (s.redirectUrl) {
@@ -102,18 +118,18 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
             }
             if (s.form && s.form.action && s.form.fields) {
               submitPaymentForm({ action: s.form.action, method: s.form.method || 'POST', fields: s.form.fields })
-              setMessage('Booking saved. Redirecting to Bankart...')
               return
             }
           }
-          // If backend returned a structured error, display its message
-          setMessage('Booking saved. Bankart session could not be created.')
+
+          // If we reach here, there was no redirect URL — show safe UI message
+          setMessage('Bankart payment page could not be opened. Please try again or choose BKT.')
         } catch (err) {
           console.error('Bankart payment creation failed:', err)
           // Prefer backend-provided message if available
           const backendMessage = err && err.message ? err.message : null
           const backendDetails = err && err.details && err.details.error && (err.details.error.providerMessage || err.details.error.message)
-          setMessage('Booking saved. ' + (backendDetails || backendMessage || 'Bankart payment creation failed.'))
+          setMessage('Bankart payment creation failed. ' + (backendDetails || backendMessage || 'Please try again or choose a different provider.'))
         }
       }
     } catch (err) {

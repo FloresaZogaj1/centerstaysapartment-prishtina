@@ -62,7 +62,7 @@ const createBankartPayment = async (req, res) => {
       }
     } catch (e) {}
 
-    const session = await bankartService.createBankartPaymentSession({ booking, payment, urls })
+  const result = await bankartService.createBankartPaymentSession({ booking, payment, urls })
 
     // Safe status/logging for Render: presence of envs (do not log values)
     try {
@@ -75,15 +75,15 @@ const createBankartPayment = async (req, res) => {
       const ep = bankartService && bankartService.buildSignatureV3 ? null : null
     } catch (e) {}
 
-    if (session && session.error) {
-      const err = session.error
+    if (result && result.error) {
+      const err = result.error
       // session.error may be structured from service
       const status = (err && err.httpStatus) || (err && err.status) || null
       const providerMessage = (err && err.providerMessage) || (err && err.message) || null
       const missingEnv = (err && err.missingEnv) || null
 
   // Log safe info for Render
-      console.log('[createBankartPayment] merchantTransactionId=%s bookingId=%s paymentId=%s', String(payment._id), String(booking._id), String(payment._id))
+  console.log('[createBankartPayment] merchantTransactionId=%s bookingId=%s paymentId=%s', String(payment._id), String(booking._id), String(payment._id))
       if (status) console.log('[createBankartPayment] bankart httpStatus=', status)
       if (providerMessage) console.log('[createBankartPayment] bankart providerMessage=', String(providerMessage).slice(0,200))
       if (missingEnv) console.log('[createBankartPayment] missingEnv=', missingEnv)
@@ -95,14 +95,54 @@ const createBankartPayment = async (req, res) => {
       if (providerMessage) clientError.providerMessage = providerMessage
       if (missingEnv) clientError.missingEnv = missingEnv
 
-      return res.status(status || 503).json({ message: 'Bankart provider not available', error: clientError })
+      return res.status(status || 503).json({ success: false, error: 'Bankart provider not available', errorDetails: clientError, paymentId: String(payment._id), bookingId: String(booking._id) })
     }
 
-    // Allowed log fields: provider, bookingId, paymentId, amount, currency, merchantOrderId
-    console.log('[createBankartPayment] provider=nlb_bankart bookingId=%s paymentId=%s amount=%s currency=%s merchantOrderId=%s',
-      String(booking._id), String(payment._id), String(payment.amount), payment.currency || 'EUR', String(payment._id))
+    // Normal path: result.session and result.rawResponse available
+    const providerResponse = result.rawResponse || (result.session && result.session.raw) || {}
+    const returnType = providerResponse.returnType || (providerResponse.type) || (providerResponse.result) || null
+    const redirectUrl = (providerResponse && providerResponse.redirectUrl) || (result.session && result.session.redirectUrl) || null
+    const hasRedirectUrl = Boolean(redirectUrl)
 
-    return res.json({ message: 'Bankart payment created (server-side).', payment, session })
+    // Safe host extraction
+    let redirectHost = null
+    try {
+      if (redirectUrl) redirectHost = (new URL(redirectUrl)).host
+    } catch (e) {
+      redirectHost = null
+    }
+
+    // Add safe backend log with providerResponse summary
+    try {
+      console.log('[createBankartPayment] providerResponse summary:', {
+        provider: 'nlb_bankart',
+        returnType: String(returnType || '(unset)'),
+        hasRedirectUrl: hasRedirectUrl,
+        redirectHost: redirectHost,
+        paymentId: String(payment._id),
+        bookingId: String(booking._id)
+      })
+    } catch (e) {}
+
+    if (hasRedirectUrl) {
+      return res.json({
+        success: true,
+        provider: 'nlb_bankart',
+        paymentId: String(payment._id),
+        bookingId: String(booking._id),
+        returnType: String(returnType || 'REDIRECT'),
+        redirectUrl: redirectUrl
+      })
+    }
+
+    // If no redirect URL provided by Bankart, return controlled error
+    return res.status(502).json({
+      success: false,
+      error: 'Bankart did not return redirectUrl',
+      providerResponse: { returnType: String(returnType || '(unset)'), hasRedirectUrl: false },
+      paymentId: String(payment._id),
+      bookingId: String(booking._id)
+    })
   } catch (error) {
     console.error('[createBankartPayment] error:', error)
     return res.status(500).json({ message: error.message })
