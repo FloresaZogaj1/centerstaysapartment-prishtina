@@ -94,9 +94,11 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
   // Create JSON string for request body - must be stable (no extra spaces)
   const bodyString = JSON.stringify(payload)
 
-  // Enforce required NLB callback presence. Do NOT accept BKT callback or frontend fallback here.
-  if (!payload.callbackUrl) {
-    return { session: null, error: { code: 'missing_env', message: 'Missing required NLB_BANKART_CALLBACK_URL (callbackUrl) for Bankart transaction', missingEnv: 'NLB_BANKART_CALLBACK_URL' } }
+  // Enforce required NLB URLs: success/fail/cancel/callback. Fail with clear error if any missing.
+  const requiredUrlKeys = ['successUrl', 'errorUrl', 'cancelUrl', 'callbackUrl']
+  const missingUrls = requiredUrlKeys.filter(k => !payload[k])
+  if (missingUrls.length > 0) {
+    return { session: null, error: { code: 'missing_env', message: `Missing required NLB_BANKART URLs: ${missingUrls.join(', ')}`, missing: missingUrls } }
   }
 
   // Safety checks:

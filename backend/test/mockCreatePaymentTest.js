@@ -64,6 +64,15 @@ axios.post = async (endpoint, data, opts) => {
       console.error('[mockCreatePaymentTest] FAILED: callbackUrl must not point to BKT callback (found)', cb)
       process.exit(2)
     }
+    // Ensure no legacy wrong frontend URL patterns are present
+    const badPatterns = ['/payment-success', '/payment-failed', '/payment-cancelled']
+    for (const p of badPatterns) {
+      const all = JSON.stringify(parsed)
+      if (all.indexOf(p) !== -1) {
+        console.error('[mockCreatePaymentTest] FAILED: payload contains disallowed legacy URL pattern', p)
+        process.exit(2)
+      }
+    }
   } catch (e) {}
   return { data: { returnType: 'REDIRECT', redirectUrl: 'https://bankart.mock/redirect/abc123' } }
 }
