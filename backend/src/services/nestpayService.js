@@ -98,11 +98,11 @@ function create3DPayHostingFields ({ booking, payment }) {
     clientid: process.env.BKT_CLIENT_ID,
     amount: String(amount),
     oid: String(oid),
-    // Use backend endpoints for BKT redirects so gateway returns to the server
-    okUrl: process.env.BKT_OK_URL || process.env.BKT_SUCCESS_URL,
-  failUrl: process.env.BKT_FAIL_URL || process.env.BKT_CANCEL_URL || process.env.BKT_FAIL_URL,
-  // Some setups may support a cancel URL; fallback to failUrl if not set
-  cancelUrl: process.env.BKT_CANCEL_URL || process.env.BKT_FAIL_URL,
+    // Use explicit backend endpoints for BKT redirects so gateway returns to the server
+    okUrl: process.env.BKT_OK_URL,
+    failUrl: process.env.BKT_FAIL_URL,
+    // Some setups may support a cancel URL; fallback to failUrl if not set
+    cancelUrl: process.env.BKT_CANCEL_URL || process.env.BKT_FAIL_URL,
     callbackUrl: process.env.BKT_CALLBACK_URL,
     TranType: process.env.BKT_TRAN_TYPE,
     storetype: process.env.BKT_STORE_TYPE,
@@ -110,6 +110,25 @@ function create3DPayHostingFields ({ booking, payment }) {
     rnd: String(Date.now()),
     hashAlgorithm: 'ver3',
     encoding: 'UTF-8'
+  }
+
+  // Validate redirect URLs - ensure they point to our backend endpoints
+  const errors = []
+  if (!params.okUrl) errors.push('BKT_OK_URL is not set')
+  if (!params.failUrl) errors.push('BKT_FAIL_URL is not set')
+  if (!params.callbackUrl) errors.push('BKT_CALLBACK_URL is not set')
+
+  if (params.okUrl && !String(params.okUrl).includes('/api/payments/bkt/ok')) errors.push('BKT_OK_URL must include /api/payments/bkt/ok')
+  if (params.failUrl && !String(params.failUrl).includes('/api/payments/bkt/fail')) errors.push('BKT_FAIL_URL must include /api/payments/bkt/fail')
+  // cancelUrl should route to the same backend fail endpoint (safe default)
+  if (params.cancelUrl && !String(params.cancelUrl).includes('/api/payments/bkt/fail')) errors.push('BKT_CANCEL_URL must include /api/payments/bkt/fail')
+  if (params.callbackUrl && !String(params.callbackUrl).includes('/api/payments/bkt/callback')) errors.push('BKT_CALLBACK_URL must include /api/payments/bkt/callback')
+
+  if (errors.length > 0) {
+    const err = new Error('BKT redirect URL validation failed: ' + errors.join('; '))
+    err.code = 'bkt_redirect_validation_failed'
+    err.details = errors
+    throw err
   }
 
   const storeKey = process.env.BKT_STORE_KEY

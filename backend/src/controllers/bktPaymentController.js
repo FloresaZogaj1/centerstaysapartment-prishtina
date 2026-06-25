@@ -30,14 +30,19 @@ const createBktPayment = async (req, res) => {
     // Safe diagnostic logs: show which customer-facing URLs are being sent to BKT
     try {
       const fields = form && form.fields ? form.fields : {}
-      const okUrl = fields.okUrl || fields.okURL || fields.successUrl || fields.successURL || fields.returnUrl || fields.shopurl || fields.successUrl
-      const failUrl = fields.failUrl || fields.failURL || fields.errorUrl || fields.failurl || fields.failUrl
-      const cancelUrl = fields.cancelUrl || fields.cancelURL || fields.cancelurl || fields.cancelUrl
-      const callbackUrl = fields.callbackUrl || fields.callbackURL || fields.callbackurl || fields.callbackUrl
+      const okUrl = fields.okUrl
+      const failUrl = fields.failUrl
+      const cancelUrl = fields.cancelUrl
+      const callbackUrl = fields.callbackUrl
       const orderId = String(fields.oid || fields.OID || fields.OrderId || fields.orderId || '(unset)')
       const amt = String(fields.amount || payment.amount || (booking && booking.pricing && booking.pricing.totalAmount) || '(unset)')
-      console.log('[createBktPayment] BKT redirect fields being sent (safe): okUrl=%s failUrl=%s cancelUrl=%s callbackUrl=%s bookingId=%s orderId=%s amount=%s paymentId=%s',
-        String(okUrl || '(unset)'), String(failUrl || '(unset)'), String(cancelUrl || '(unset)'), String(callbackUrl || '(unset)'), String(booking._id), orderId, amt, String(payment._id))
+      // Log exactly the backend endpoints being sent (safe)
+      console.log('[createBktPayment] BKT redirect fields being sent:')
+      console.log('okUrl=%s', String(okUrl || '(unset)'))
+      console.log('failUrl=%s', String(failUrl || '(unset)'))
+      console.log('cancelUrl=%s', String(cancelUrl || '(unset)'))
+      console.log('callbackUrl=%s', String(callbackUrl || '(unset)'))
+      console.log('bookingId=%s orderId=%s amount=%s paymentId=%s', String(booking._id), orderId, amt, String(payment._id))
     } catch (e) { /* swallow logging errors */ }
 
     return res.json({
@@ -203,8 +208,10 @@ const bktOkHandler = async (req, res) => {
     }
 
   const frontOk = process.env.FRONT_OK || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/success` : '/payment/success')
-  console.log('[bktOkHandler] redirecting customer to FRONT_OK=%s (envPresent=%s)', String(frontOk), Boolean(process.env.FRONT_OK || process.env.FRONTEND_URL))
-  return res.redirect(String(frontOk))
+  // Prefer hash-based frontend result routes
+  const frontOkHash = process.env.FRONT_OK || process.env.FRONT_OK_HASH || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/success` : '/payment/success')
+  console.log('[bktOkHandler] redirecting customer to FRONT_OK=%s (envPresent=%s)', String(frontOkHash), Boolean(process.env.FRONT_OK || process.env.FRONT_OK_HASH || process.env.FRONTEND_URL))
+  return res.redirect(String(frontOkHash))
   } catch (err) {
     console.error('[bktOkHandler] error:', err && err.message ? err.message : err)
     const frontOk = process.env.FRONT_OK || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/success` : '/payment/success')
@@ -241,12 +248,14 @@ const bktFailHandler = async (req, res) => {
     }
 
   const frontFail = process.env.FRONT_FAIL || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
-  console.log('[bktFailHandler] redirecting customer to FRONT_FAIL=%s (envPresent=%s)', String(frontFail), Boolean(process.env.FRONT_FAIL || process.env.FRONTEND_URL))
-  return res.redirect(String(frontFail))
+  const frontFailHash = process.env.FRONT_FAIL || process.env.FRONT_FAIL_HASH || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
+  console.log('[bktFailHandler] redirecting customer to FRONT_FAIL=%s (envPresent=%s)', String(frontFailHash), Boolean(process.env.FRONT_FAIL || process.env.FRONT_FAIL_HASH || process.env.FRONTEND_URL))
+  return res.redirect(String(frontFailHash))
   } catch (err) {
     console.error('[bktFailHandler] error:', err && err.message ? err.message : err)
     const frontFail = process.env.FRONT_FAIL || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
-    return res.redirect(String(frontFail))
+  const frontFailHash = process.env.FRONT_FAIL || process.env.FRONT_FAIL_HASH || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
+  return res.redirect(String(frontFailHash))
   }
 }
 
