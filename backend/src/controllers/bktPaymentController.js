@@ -227,7 +227,16 @@ const bktOkHandler = async (req, res) => {
 const bktFailHandler = async (req, res) => {
   try {
     const payload = Object.assign({}, req.method === 'GET' ? req.query : req.body)
-  console.log('[bktFailHandler] BKT FAIL return received: method=%s route=%s sanitizedKeys=%s', req.method, req.path, JSON.stringify(Object.keys(payload).slice(0,20)))
+    // Safe request log
+    try {
+      console.log('[BKT fail return] received', {
+        method: req.method,
+        origin: req.headers && req.headers.origin,
+        referer: req.headers && req.headers.referer,
+        queryKeys: Object.keys(req.query || {}),
+        bodyKeys: Object.keys(req.body || {})
+      })
+    } catch (e) {}
 
     const oid = payload.oid || payload.OID || payload.OrderId || payload.orderId || null
     if (oid) {
