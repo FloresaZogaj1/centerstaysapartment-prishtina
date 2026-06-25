@@ -47,8 +47,24 @@ axios.post = async (endpoint, data, opts) => {
     console.error('[mockCreatePaymentTest] Expected axios to receive a string body (bodyString), got object')
     process.exit(2)
   }
-
-  // we could verify JSON.parse(bodyStringSent) equals payload shape, but keep minimal
+  // verify no Pay-by-Link fields are present in the standard ecommerce payload
+  try {
+    const parsed = JSON.parse(bodyStringSent)
+    if (parsed.payByLink) {
+      console.error('[mockCreatePaymentTest] FAILED: payByLink must not be present in ecommerce request')
+      process.exit(2)
+    }
+    if (parsed.sendByEmail || parsed.expirationInMinute || parsed.expiresAt) {
+      console.error('[mockCreatePaymentTest] FAILED: Pay-by-Link related fields must not be present (sendByEmail/expirationInMinute/expiresAt)')
+      process.exit(2)
+    }
+    // verify callbackUrl uses NLB_BANKART_CALLBACK_URL env (if provided)
+    const cb = parsed.callbackUrl
+    if (cb && cb.indexOf('bkt') !== -1) {
+      console.error('[mockCreatePaymentTest] FAILED: callbackUrl must not point to BKT callback (found)', cb)
+      process.exit(2)
+    }
+  } catch (e) {}
   return { data: { returnType: 'REDIRECT', redirectUrl: 'https://bankart.mock/redirect/abc123' } }
 }
 

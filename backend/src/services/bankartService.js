@@ -73,23 +73,21 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
     amount: amount.toFixed(2),
     currency: currency,
     successUrl: urls.successUrl || process.env.NLB_BANKART_SUCCESS_URL || `${process.env.FRONTEND_URL}/payment/success`,
-    cancelUrl: urls.failUrl || process.env.NLB_BANKART_FAIL_URL || `${process.env.FRONTEND_URL}/payment/fail`,
-    errorUrl: urls.failUrl || process.env.NLB_BANKART_FAIL_URL || `${process.env.FRONTEND_URL}/payment/fail`,
+    cancelUrl: urls.cancelUrl || process.env.NLB_BANKART_CANCEL_URL || process.env.NLB_BANKART_FAIL_URL || `${process.env.FRONTEND_URL}/payment/cancel`,
+    errorUrl: urls.errorUrl || process.env.NLB_BANKART_FAIL_URL || `${process.env.FRONTEND_URL}/payment/fail`,
     callbackUrl: urls.callbackUrl || process.env.NLB_BANKART_CALLBACK_URL || `${process.env.FRONTEND_URL}/api/payments/bankart/callback`,
-    description: `Booking ${orderId}`,
+    description: `Center Stays booking ${orderId}`,
     customer: {
+      firstName: (booking.customer && booking.customer.firstName) || (booking.customer && booking.customer.name && String(booking.customer.name).split(' ')[0]) || 'Guest',
+      lastName: (booking.customer && booking.customer.lastName) || (booking.customer && booking.customer.name && String(booking.customer.name).split(' ').slice(1).join(' ')) || 'Customer',
+      billingAddress1: (booking.customer && booking.customer.address) || booking.address || 'Prishtina',
+      billingCity: (booking.customer && booking.customer.city) || 'Prishtina',
+      billingPostcode: (booking.customer && booking.customer.postcode) || '10000',
+      billingCountry: (booking.customer && booking.customer.country) || 'XK',
       email: (booking.customer && booking.customer.email) || booking.email || '',
-      billingAddress1: (booking.customer && booking.customer.address) || '',
-      billingCity: (booking.customer && booking.customer.city) || '',
-      billingPostcode: (booking.customer && booking.customer.postcode) || '',
-      billingCountry: (booking.customer && booking.customer.country) || '',
       ipAddress: (booking.ipAddress) || '127.0.0.1'
     },
-    language: 'en',
-    payByLink: {
-      sendByEmail: false,
-      expirationInMinute: 120
-    }
+    language: 'en'
   }
 
   // Create JSON string for request body - must be stable (no extra spaces)
@@ -180,17 +178,20 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
         const failUrl = payload.cancelUrl || payload.errorUrl
         const cancelUrl = payload.cancelUrl
         const callbackUrl = payload.callbackUrl
-
+        const hasPayByLink = Boolean(payload && Object.prototype.hasOwnProperty.call(payload, 'payByLink'))
         console.log('[bankartService] about to POST to Bankart (safe):', {
+          provider: 'bankart',
           apiKeyLast4: apiKeySafe,
           mode: config.mode || process.env.NLB_BANKART_MODE || '(unset)',
           endpoint,
           requestUri: endpointPath,
           encodedApiKey: encodeToggle,
           successUrl: String(successUrl || '(unset)'),
-          failUrl: String(failUrl || '(unset)'),
           cancelUrl: String(cancelUrl || '(unset)'),
+          errorUrl: String(payload.errorUrl || '(unset)'),
           callbackUrl: String(callbackUrl || '(unset)'),
+          hasPayByLink: hasPayByLink,
+          bodyKeys: Object.keys(payload || {}),
           merchantTransactionId: orderId,
           bookingId: booking && booking._id ? String(booking._id) : null,
           paymentId: payment && payment._id ? String(payment._id) : null
