@@ -157,7 +157,98 @@ const handleBktCallback = async (req, res) => {
   }
 }
 
+/**
+ * bktOkHandler
+ * - Handles customer redirect from BKT after successful 3DS/approval.
+ * - Accepts either GET (query params) or POST (form body).
+ * - Verifies HASH if present and updates payment/booking accordingly.
+ * - Redirects customer to FRONT_OK regardless, but only marks payment paid after verification.
+ */
+const bktOkHandler = async (req, res) => {
+  try {
+    const payload = Object.assign({}, req.method === 'GET' ? req.query : req.body)
+    console.log('[bktOkHandler] BKT OK return received, sanitized keys:', Object.keys(payload).slice(0,20))
+
+    const receivedHash = payload.HASH || payload.hash
+    let verified = false
+    if (receivedHash) {
+      try { verified = nestpay.verifyHashV3(payload, receivedHash, process.env.BKT_STORE_KEY) } catch (e) { verified = false }
+    }
+
+    // Identify order id
+    const oid = payload.oid || payload.OID || payload.OrderId || payload.orderId || null
+    if (oid) {
+      const booking = await Booking.findOne({ bookingNumber: oid }).populate('room')
+      if (booking) {
+        let payment = await Payment.findOne({ booking: booking._id }).sort({ createdAt: -1 })
+        if (!payment) {
+          payment = await Payment.create({ booking: booking._id, provider: 'BKT', amount: booking.pricing.totalAmount, currency: booking.pricing.currency || 'EUR', status: 'pending' })
+        }
+        // Only mark paid when verified
+        if (verified) {
+          payment.status = 'paid'
+          booking.paymentStatus = 'paid'
+          booking.status = 'paid'
+          await payment.save()
+          await booking.save()
+        } else {
+          // keep pending, but attach raw response for later investigation
+          payment.rawResponse = payload
+          await payment.save()
+        }
+      }
+    }
+
+    const frontOk = process.env.FRONT_OK || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/success` : '/payment/success')
+    return res.redirect(String(frontOk))
+  } catch (err) {
+    console.error('[bktOkHandler] error:', err && err.message ? err.message : err)
+    const frontOk = process.env.FRONT_OK || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/success` : '/payment/success')
+    return res.redirect(String(frontOk))
+  }
+}
+
+/**
+ * bktFailHandler
+ * - Handles customer redirect from BKT after failure or cancellation.
+ * - Accepts GET or POST, logs sanitized payload, attempts to associate payment and mark failed, then redirects to FRONT_FAIL.
+ */
+const bktFailHandler = async (req, res) => {
+  try {
+    const payload = Object.assign({}, req.method === 'GET' ? req.query : req.body)
+    console.log('[bktFailHandler] BKT FAIL return received, sanitized keys:', Object.keys(payload).slice(0,20))
+
+    const oid = payload.oid || payload.OID || payload.OrderId || payload.orderId || null
+    if (oid) {
+      const booking = await Booking.findOne({ bookingNumber: oid }).populate('room')
+      if (booking) {
+        let payment = await Payment.findOne({ booking: booking._id }).sort({ createdAt: -1 })
+        if (!payment) {
+          payment = await Payment.create({ booking: booking._id, provider: 'BKT', amount: booking.pricing.totalAmount, currency: booking.pricing.currency || 'EUR', status: 'pending' })
+        }
+        // Mark as failed/cancelled conservatively
+        payment.status = 'failed'
+        booking.paymentStatus = 'failed'
+        booking.status = 'failed'
+        payment.rawResponse = payload
+        await payment.save()
+        await booking.save()
+      }
+    }
+
+    const frontFail = process.env.FRONT_FAIL || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
+    return res.redirect(String(frontFail))
+  } catch (err) {
+    console.error('[bktFailHandler] error:', err && err.message ? err.message : err)
+    const frontFail = process.env.FRONT_FAIL || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
+    return res.redirect(String(frontFail))
+  }
+}
+
 module.exports = {
   createBktPayment,
-  handleBktCallback
+  handleBktCallback,
+  bktOkHandler,
+  bktFailHandler
 }
+

@@ -2,7 +2,9 @@
 const crypto = require('crypto')
 
 // Required environment variables for BKT (fail fast if missing)
-const REQUIRED_VARS = [
+// Required envs: some have alternate names (OK/FAIL). We'll fail fast for truly required ones,
+// but allow OK/FAIL alternatives for redirect endpoints.
+const REQUIRED_VARS_MIN = [
   'BKT_CLIENT_ID',
   'BKT_STORE_KEY',
   'BKT_STORE_TYPE',
@@ -12,16 +14,18 @@ const REQUIRED_VARS = [
   'BKT_API_USERNAME',
   'BKT_API_PASSWORD',
   'BKT_API_POST_URL',
-  'BKT_SUCCESS_URL',
-  'BKT_FAIL_URL',
   'BKT_CALLBACK_URL'
 ]
 
-for (const v of REQUIRED_VARS) {
+for (const v of REQUIRED_VARS_MIN) {
   if (!process.env[v]) {
     throw new Error(`Missing required BKT environment variable: ${v}`)
   }
 }
+
+// Ensure at least one form of redirect URL is present (ok or success, fail or fail)
+if (!process.env.BKT_OK_URL && !process.env.BKT_SUCCESS_URL) throw new Error('Missing BKT_OK_URL or BKT_SUCCESS_URL')
+if (!process.env.BKT_FAIL_URL && !process.env.BKT_CANCEL_URL) throw new Error('Missing BKT_FAIL_URL or BKT_CANCEL_URL')
 
 /**
  * escapeHashValue - escapes pipe characters and trims value
@@ -94,11 +98,14 @@ function create3DPayHostingFields ({ booking, payment }) {
     clientid: process.env.BKT_CLIENT_ID,
     amount: String(amount),
     oid: String(oid),
-  okUrl: process.env.BKT_SUCCESS_URL,
-  failUrl: process.env.BKT_FAIL_URL,
-  callbackUrl: process.env.BKT_CALLBACK_URL,
-  TranType: process.env.BKT_TRAN_TYPE,
-  storetype: process.env.BKT_STORE_TYPE,
+    // Use backend endpoints for BKT redirects so gateway returns to the server
+    okUrl: process.env.BKT_OK_URL || process.env.BKT_SUCCESS_URL,
+  failUrl: process.env.BKT_FAIL_URL || process.env.BKT_CANCEL_URL || process.env.BKT_FAIL_URL,
+  // Some setups may support a cancel URL; fallback to failUrl if not set
+  cancelUrl: process.env.BKT_CANCEL_URL || process.env.BKT_FAIL_URL,
+    callbackUrl: process.env.BKT_CALLBACK_URL,
+    TranType: process.env.BKT_TRAN_TYPE,
+    storetype: process.env.BKT_STORE_TYPE,
     currency: process.env.BKT_CURRENCY,
     rnd: String(Date.now()),
     hashAlgorithm: 'ver3',

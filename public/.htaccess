@@ -1,0 +1,10 @@
+RewriteEngine On
+RewriteBase /
+
+RewriteRule ^index.html$ - [L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
+
+<IfModule mod_headers.c> Header always set Content-Security-Policy "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; connect-src 'self' https://centerstaysapartment-prishtina.onrender.com https:; form-action 'self' https://pgw.bkt-ks.com https://gateway.bankart.si; frame-ancestors 'self'" </IfModule>
