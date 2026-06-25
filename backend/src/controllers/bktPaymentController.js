@@ -32,9 +32,12 @@ const createBktPayment = async (req, res) => {
       const fields = form && form.fields ? form.fields : {}
       const okUrl = fields.okUrl || fields.okURL || fields.successUrl || fields.successURL || fields.returnUrl || fields.shopurl || fields.successUrl
       const failUrl = fields.failUrl || fields.failURL || fields.errorUrl || fields.failurl || fields.failUrl
+      const cancelUrl = fields.cancelUrl || fields.cancelURL || fields.cancelurl || fields.cancelUrl
       const callbackUrl = fields.callbackUrl || fields.callbackURL || fields.callbackurl || fields.callbackUrl
-      console.log('[createBktPayment] BKT redirect fields being sent (safe): okUrl=%s failUrl=%s callbackUrl=%s bookingId=%s orderId=%s',
-        String(okUrl || '(unset)'), String(failUrl || '(unset)'), String(callbackUrl || '(unset)'), String(booking._id), String(fields.oid || fields.OID || fields.OrderId || fields.orderId || '(unset)'))
+      const orderId = String(fields.oid || fields.OID || fields.OrderId || fields.orderId || '(unset)')
+      const amt = String(fields.amount || payment.amount || (booking && booking.pricing && booking.pricing.totalAmount) || '(unset)')
+      console.log('[createBktPayment] BKT redirect fields being sent (safe): okUrl=%s failUrl=%s cancelUrl=%s callbackUrl=%s bookingId=%s orderId=%s amount=%s paymentId=%s',
+        String(okUrl || '(unset)'), String(failUrl || '(unset)'), String(cancelUrl || '(unset)'), String(callbackUrl || '(unset)'), String(booking._id), orderId, amt, String(payment._id))
     } catch (e) { /* swallow logging errors */ }
 
     return res.json({
@@ -167,7 +170,7 @@ const handleBktCallback = async (req, res) => {
 const bktOkHandler = async (req, res) => {
   try {
     const payload = Object.assign({}, req.method === 'GET' ? req.query : req.body)
-    console.log('[bktOkHandler] BKT OK return received, sanitized keys:', Object.keys(payload).slice(0,20))
+  console.log('[bktOkHandler] BKT OK return received: method=%s route=%s sanitizedKeys=%s', req.method, req.path, JSON.stringify(Object.keys(payload).slice(0,20)))
 
     const receivedHash = payload.HASH || payload.hash
     let verified = false
@@ -175,7 +178,7 @@ const bktOkHandler = async (req, res) => {
       try { verified = nestpay.verifyHashV3(payload, receivedHash, process.env.BKT_STORE_KEY) } catch (e) { verified = false }
     }
 
-    // Identify order id
+  // Identify order id
     const oid = payload.oid || payload.OID || payload.OrderId || payload.orderId || null
     if (oid) {
       const booking = await Booking.findOne({ bookingNumber: oid }).populate('room')
@@ -199,8 +202,9 @@ const bktOkHandler = async (req, res) => {
       }
     }
 
-    const frontOk = process.env.FRONT_OK || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/success` : '/payment/success')
-    return res.redirect(String(frontOk))
+  const frontOk = process.env.FRONT_OK || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/success` : '/payment/success')
+  console.log('[bktOkHandler] redirecting customer to FRONT_OK=%s (envPresent=%s)', String(frontOk), Boolean(process.env.FRONT_OK || process.env.FRONTEND_URL))
+  return res.redirect(String(frontOk))
   } catch (err) {
     console.error('[bktOkHandler] error:', err && err.message ? err.message : err)
     const frontOk = process.env.FRONT_OK || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/success` : '/payment/success')
@@ -216,7 +220,7 @@ const bktOkHandler = async (req, res) => {
 const bktFailHandler = async (req, res) => {
   try {
     const payload = Object.assign({}, req.method === 'GET' ? req.query : req.body)
-    console.log('[bktFailHandler] BKT FAIL return received, sanitized keys:', Object.keys(payload).slice(0,20))
+  console.log('[bktFailHandler] BKT FAIL return received: method=%s route=%s sanitizedKeys=%s', req.method, req.path, JSON.stringify(Object.keys(payload).slice(0,20)))
 
     const oid = payload.oid || payload.OID || payload.OrderId || payload.orderId || null
     if (oid) {
@@ -236,8 +240,9 @@ const bktFailHandler = async (req, res) => {
       }
     }
 
-    const frontFail = process.env.FRONT_FAIL || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
-    return res.redirect(String(frontFail))
+  const frontFail = process.env.FRONT_FAIL || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
+  console.log('[bktFailHandler] redirecting customer to FRONT_FAIL=%s (envPresent=%s)', String(frontFail), Boolean(process.env.FRONT_FAIL || process.env.FRONTEND_URL))
+  return res.redirect(String(frontFail))
   } catch (err) {
     console.error('[bktFailHandler] error:', err && err.message ? err.message : err)
     const frontFail = process.env.FRONT_FAIL || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
