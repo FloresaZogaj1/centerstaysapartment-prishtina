@@ -25,11 +25,25 @@ const createBankartPayment = async (req, res) => {
     await booking.save()
 
     // Build Bankart session/form metadata
+    // Use NLB/Bankart-specific environment variables for Bankart hosted payments
+    // Do not fall back to BKT or frontend callback URLs here.
     const urls = {
-      successUrl: process.env.BKT_SUCCESS_URL || `${process.env.FRONTEND_URL}/payment/success`,
-      failUrl: process.env.BKT_FAIL_URL || `${process.env.FRONTEND_URL}/payment/fail`,
-      callbackUrl: process.env.BKT_CALLBACK_URL || `${process.env.FRONTEND_URL}/api/payments/bankart/callback`
+      successUrl: process.env.NLB_BANKART_SUCCESS_URL || null,
+      failUrl: process.env.NLB_BANKART_FAIL_URL || null,
+      cancelUrl: process.env.NLB_BANKART_CANCEL_URL || null,
+      callbackUrl: process.env.NLB_BANKART_CALLBACK_URL || null
     }
+
+    // Fail fast if required Bankart callback is not configured
+    if (!urls.callbackUrl) {
+      console.error('[createBankartPayment] NLB_BANKART_CALLBACK_URL is not configured. Aborting Bankart create.')
+      return res.status(500).json({ message: 'Bankart callback URL not configured (NLB_BANKART_CALLBACK_URL required)' })
+    }
+
+    // Ensure front-end defaults exist for developer convenience but we prefer explicit NLB envs
+    urls.successUrl = urls.successUrl || `${process.env.FRONTEND_URL}/payment/success`
+    urls.failUrl = urls.failUrl || `${process.env.FRONTEND_URL}/payment/fail`
+    urls.cancelUrl = urls.cancelUrl || `${process.env.FRONTEND_URL}/payment/cancel`
 
     // Create session with guard: service may return { error } if not configured
     // Diagnostic logs (safe): mode and presence of critical envs

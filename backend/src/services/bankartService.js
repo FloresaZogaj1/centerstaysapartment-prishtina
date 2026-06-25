@@ -72,10 +72,11 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
     merchantTransactionId: orderId,
     amount: amount.toFixed(2),
     currency: currency,
-    successUrl: urls.successUrl || process.env.NLB_BANKART_SUCCESS_URL || `${process.env.FRONTEND_URL}/payment/success`,
-    cancelUrl: urls.cancelUrl || process.env.NLB_BANKART_CANCEL_URL || process.env.NLB_BANKART_FAIL_URL || `${process.env.FRONTEND_URL}/payment/cancel`,
-    errorUrl: urls.errorUrl || process.env.NLB_BANKART_FAIL_URL || `${process.env.FRONTEND_URL}/payment/fail`,
-    callbackUrl: urls.callbackUrl || process.env.NLB_BANKART_CALLBACK_URL || `${process.env.FRONTEND_URL}/api/payments/bankart/callback`,
+    // Use only NLB_BANKART_* envs or explicit urls provided by caller. Do NOT fallback to BKT or frontend-derived callbacks.
+    successUrl: urls.successUrl || process.env.NLB_BANKART_SUCCESS_URL || null,
+    cancelUrl: urls.cancelUrl || process.env.NLB_BANKART_CANCEL_URL || process.env.NLB_BANKART_FAIL_URL || null,
+    errorUrl: urls.errorUrl || process.env.NLB_BANKART_FAIL_URL || null,
+    callbackUrl: urls.callbackUrl || process.env.NLB_BANKART_CALLBACK_URL || null,
     description: `Center Stays booking ${orderId}`,
     customer: {
       firstName: (booking.customer && booking.customer.firstName) || (booking.customer && booking.customer.name && String(booking.customer.name).split(' ')[0]) || 'Guest',
@@ -92,6 +93,11 @@ async function createBankartPaymentSession ({ booking, payment, urls = {} }) {
 
   // Create JSON string for request body - must be stable (no extra spaces)
   const bodyString = JSON.stringify(payload)
+
+  // Enforce required NLB callback presence. Do NOT accept BKT callback or frontend fallback here.
+  if (!payload.callbackUrl) {
+    return { session: null, error: { code: 'missing_env', message: 'Missing required NLB_BANKART_CALLBACK_URL (callbackUrl) for Bankart transaction', missingEnv: 'NLB_BANKART_CALLBACK_URL' } }
+  }
 
   // Safety checks:
   // - If mode is 'live' and not explicitly confirmed, block the live flow.
