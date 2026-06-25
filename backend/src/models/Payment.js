@@ -13,6 +13,16 @@ const PaymentSchema = new mongoose.Schema(
     },
     bankartOrderId: { type: String },
     bankartTransactionId: { type: String },
+  // Provider callback metadata (persisted for audit + troubleshooting)
+  providerTransactionId: { type: String }, // primary provider transaction id (uuid)
+  providerUuid: { type: String },
+  providerResult: { type: String },
+  providerCode: { type: String },
+  providerMessage: { type: String },
+  adapterCode: { type: String },
+  adapterMessage: { type: String },
+  callbackReceivedAt: { type: Date },
+  verifiedSignature: { type: Boolean },
     rawResponse: { type: Object },
     // Invoice metadata to ensure idempotent invoice sending
     invoiceNumber: { type: String },

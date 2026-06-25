@@ -153,11 +153,30 @@ module.exports = {
   createBankartPayment,
 }
 
-// Placeholder handler for Bankart callback/webhook
+// Bankart callback/webhook handler - improved logging, verification, mapping and persistence
 const bankartCallback = async (req, res) => {
   try {
-    const payload = req.body
-    console.log('[Bankart Callback] received payload keys:', Object.keys(payload || {}))
+    const payload = req.body || {}
+
+    // Build a sanitized summary from payload for logs (do not include sensitive card data)
+    const sanitized = {
+      merchantTransactionId: payload.merchantTransactionId || payload.merchantOrderId || payload.orderId || payload.merchantOrder || null,
+      uuid: payload.uuid || null,
+      purchaseId: payload.purchaseId || null,
+      result: payload.result || payload.status || null,
+      code: payload.code || null,
+      message: payload.message || null,
+      adapterCode: payload.adapterCode || null,
+      adapterMessage: payload.adapterMessage || null,
+      transactionType: payload.transactionType || null,
+      paymentMethod: payload.paymentMethod || null,
+      amount: payload.amount || null,
+      currency: payload.currency || null,
+      hasReturnData: payload.returnData ? true : false,
+      returnDataKeys: payload.returnData && typeof payload.returnData === 'object' ? Object.keys(payload.returnData) : []
+    }
+
+    console.log('[Bankart Callback] sanitized payload summary:', sanitized)
 
     // Use rawBody captured by express.json verify option for exact signature verification
     const rawBody = req.rawBody || null
@@ -165,17 +184,20 @@ const bankartCallback = async (req, res) => {
     const method = req.method || 'POST'
     const verification = bankartService.verifyBankartCallback(req.headers || {}, payload, rawBody, requestPath, method)
 
-    if (!verification || !verification.valid) {
-      // Sanitize verification failure logs
-      console.log('[Bankart Callback] verification failed:', String(verification && verification.reason || '').slice(0,200))
+    const verified = !!(verification && verification.valid)
+    console.log('[Bankart Callback] signature verification:', { verifiedSignature: verified, reason: verification && verification.reason ? String(verification.reason).slice(0,200) : undefined })
+
+    if (!verified) {
+      // Do not process further if signature cannot be validated
       return res.status(400).send('Invalid signature')
     }
 
-    // Map provider status to normalized status
-  const normalized = bankartService.mapBankartStatus(payload.status || payload.result || '')
+    // Map provider status to normalized internal status
+    const providerResult = (payload.result || payload.status || '').toString()
+    const normalized = bankartService.mapBankartStatus(providerResult)
 
     // Find payment by merchantTransactionId or merchantOrderId if provided
-    const merchantOrderId = payload.merchantTransactionId || payload.merchantOrderId || payload.orderId || payload.merchantOrder || null
+    const merchantOrderId = sanitized.merchantTransactionId
     if (!merchantOrderId) {
       console.log('[Bankart Callback] no merchantTransactionId found in payload')
       return res.status(400).json({ message: 'No merchantTransactionId in payload' })
@@ -187,17 +209,39 @@ const bankartCallback = async (req, res) => {
       return res.status(404).json({ message: 'Payment not found' })
     }
 
-    // Update payment and associated booking
-    payment.status = normalized
-    payment.providerResponse = payload
-    payment.updatedAt = new Date()
-    await payment.save()
+    // Persist provider fields for audit
+    try {
+      // primary provider txn id
+      payment.providerTransactionId = sanitized.uuid || payment.providerTransactionId
+      payment.providerUuid = sanitized.uuid || payment.providerUuid
+      payment.providerResult = providerResult || payment.providerResult
+      payment.providerCode = sanitized.code || payment.providerCode
+      payment.providerMessage = sanitized.message || payment.providerMessage
+      payment.adapterCode = sanitized.adapterCode || payment.adapterCode
+      payment.adapterMessage = sanitized.adapterMessage || payment.adapterMessage
+      payment.callbackReceivedAt = new Date()
+      payment.verifiedSignature = true
+      payment.rawResponse = payload
 
+      // Update status and timestamps
+      payment.status = normalized
+      payment.updatedAt = new Date()
+
+      await payment.save()
+    } catch (e) {
+      console.log('[Bankart Callback] error saving provider info to payment:', e && e.message ? e.message : e)
+    }
+
+    // Update booking status if linked
     if (payment.booking) {
-      const booking = await Booking.findById(payment.booking)
-      if (booking) {
-        booking.paymentStatus = normalized
-        await booking.save()
+      try {
+        const booking = await Booking.findById(payment.booking)
+        if (booking) {
+          booking.paymentStatus = normalized
+          await booking.save()
+        }
+      } catch (e) {
+        console.log('[Bankart Callback] error updating booking status:', e && e.message ? e.message : e)
       }
     }
 
@@ -218,6 +262,23 @@ const bankartCallback = async (req, res) => {
     }
 
     // Respond with exact content expected by Bankart
+    // Final mapping log for easy audit
+    try {
+      console.log('[Bankart Callback] final mapping:', {
+        provider: 'bankart',
+        merchantTransactionId: sanitized.merchantTransactionId,
+        paymentId: String(payment._id),
+        bookingId: payment.booking ? String(payment.booking) : null,
+        verifiedSignature: !!payment.verifiedSignature,
+        mappedStatus: payment.status,
+        providerResult: payment.providerResult,
+        providerCode: payment.providerCode,
+        providerMessage: payment.providerMessage,
+        adapterCode: payment.adapterCode,
+        adapterMessage: payment.adapterMessage
+      })
+    } catch (e) {}
+
     res.set('Content-Type', 'text/plain')
     return res.status(200).send('OK')
   } catch (error) {
