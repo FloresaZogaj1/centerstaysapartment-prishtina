@@ -176,7 +176,10 @@ const bankartCallback = async (req, res) => {
       returnDataKeys: payload.returnData && typeof payload.returnData === 'object' ? Object.keys(payload.returnData) : []
     }
 
-    console.log('[Bankart Callback] sanitized payload summary:', sanitized)
+  console.log('[Bankart Callback] sanitized payload summary:', sanitized)
+
+  // Production marker for deploy verification
+  console.log('[Bankart Callback] REFUND NORMALIZATION VERSION ACTIVE')
 
     // Use rawBody captured by express.json verify option for exact signature verification
     const rawBody = req.rawBody || null
@@ -197,32 +200,38 @@ const bankartCallback = async (req, res) => {
     const providerResult = (payload.result || payload.status || '').toString()
     const normalized = bankartService.mapBankartStatus(providerResult)
 
-    // Detect refund callbacks
+    // Implement strict normalization & validation before any DB lookup
+    const rawMerchantTransactionId = payload.merchantTransactionId || payload.merchantOrderId || payload.orderId || payload.merchantOrder || null
     const isRefund = (payload.transactionType && String(payload.transactionType).toUpperCase() === 'REFUND')
 
-    // Normalize merchantTransactionId for lookup (refunds include prefix like refund1-<origId>)
-    let lookupPaymentId = sanitized.merchantTransactionId
-    if (!lookupPaymentId) {
-      console.log('[Bankart Callback] no merchantTransactionId found in payload')
-      return res.status(400).json({ message: 'No merchantTransactionId in payload' })
-    }
+    let lookupPaymentId = rawMerchantTransactionId
 
     if (isRefund && typeof lookupPaymentId === 'string') {
-      // strip refund prefix
+      // strip refund prefix like refund1- or refund12-
       lookupPaymentId = lookupPaymentId.replace(/^refund\d*-/, '')
-      console.log('[Bankart Callback] refund detected', { originalMerchantTransactionId: sanitized.merchantTransactionId, normalizedPaymentId: lookupPaymentId })
     }
 
-    // Validate ObjectId before querying
+    console.log('[Bankart Callback] normalized merchantTransactionId', {
+      transactionType: payload.transactionType,
+      rawMerchantTransactionId,
+      lookupPaymentId
+    })
+
+    // Validate before querying
     const mongoose = require('mongoose')
-    const isValidObjectId = mongoose.Types.ObjectId.isValid(lookupPaymentId)
-    if (!isValidObjectId) {
-      console.log('[Bankart Callback] invalid payment id after normalization, returning 200 to avoid retry:', { lookupPaymentId })
-      // Respond 200 to avoid provider retries — we've logged enough for investigation
+    if (!mongoose.Types.ObjectId.isValid(lookupPaymentId)) {
+      console.error('[Bankart Callback] invalid normalized payment id', {
+        transactionType: payload.transactionType,
+        rawMerchantTransactionId,
+        lookupPaymentId
+      })
+
+      // Return 200 to avoid provider retries; nothing we can do with invalid id
       res.set('Content-Type', 'text/plain')
       return res.status(200).send('OK')
     }
 
+    // Safe: only query using the validated, normalized id
     const payment = await Payment.findById(lookupPaymentId)
     if (!payment) {
       console.log('[Bankart Callback] payment not found for id:', String(lookupPaymentId).slice(0,200))
