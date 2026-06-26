@@ -24,6 +24,13 @@ const PaymentSchema = new mongoose.Schema(
   callbackReceivedAt: { type: Date },
   verifiedSignature: { type: Boolean },
     rawResponse: { type: Object },
+  // Refund metadata
+  refundStatus: { type: String },
+  refundedAt: { type: Date },
+  refundAmount: { type: String },
+  refundTransactionId: { type: String },
+  refundMerchantTransactionId: { type: String },
+  refundProviderResult: { type: String },
     // Invoice metadata to ensure idempotent invoice sending
     invoiceNumber: { type: String },
     invoiceSentAt: { type: Date }

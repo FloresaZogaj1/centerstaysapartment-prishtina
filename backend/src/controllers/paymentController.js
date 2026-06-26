@@ -192,24 +192,46 @@ const bankartCallback = async (req, res) => {
       return res.status(400).send('Invalid signature')
     }
 
+
     // Map provider status to normalized internal status
     const providerResult = (payload.result || payload.status || '').toString()
     const normalized = bankartService.mapBankartStatus(providerResult)
 
-    // Find payment by merchantTransactionId or merchantOrderId if provided
-    const merchantOrderId = sanitized.merchantTransactionId
-    if (!merchantOrderId) {
+    // Detect refund callbacks
+    const isRefund = (payload.transactionType && String(payload.transactionType).toUpperCase() === 'REFUND')
+
+    // Normalize merchantTransactionId for lookup (refunds include prefix like refund1-<origId>)
+    let lookupPaymentId = sanitized.merchantTransactionId
+    if (!lookupPaymentId) {
       console.log('[Bankart Callback] no merchantTransactionId found in payload')
       return res.status(400).json({ message: 'No merchantTransactionId in payload' })
     }
 
-    const payment = await Payment.findById(merchantOrderId)
-    if (!payment) {
-      console.log('[Bankart Callback] payment not found for id:', String(merchantOrderId).slice(0,200))
-      return res.status(404).json({ message: 'Payment not found' })
+    if (isRefund && typeof lookupPaymentId === 'string') {
+      // strip refund prefix
+      lookupPaymentId = lookupPaymentId.replace(/^refund\d*-/, '')
+      console.log('[Bankart Callback] refund detected', { originalMerchantTransactionId: sanitized.merchantTransactionId, normalizedPaymentId: lookupPaymentId })
     }
 
-    // Persist provider fields for audit
+    // Validate ObjectId before querying
+    const mongoose = require('mongoose')
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(lookupPaymentId)
+    if (!isValidObjectId) {
+      console.log('[Bankart Callback] invalid payment id after normalization, returning 200 to avoid retry:', { lookupPaymentId })
+      // Respond 200 to avoid provider retries — we've logged enough for investigation
+      res.set('Content-Type', 'text/plain')
+      return res.status(200).send('OK')
+    }
+
+    const payment = await Payment.findById(lookupPaymentId)
+    if (!payment) {
+      console.log('[Bankart Callback] payment not found for id:', String(lookupPaymentId).slice(0,200))
+      // Return 200 so provider doesn't retry; we've logged the missing payment
+      res.set('Content-Type', 'text/plain')
+      return res.status(200).send('OK')
+    }
+
+  // Persist provider fields for audit
     try {
       // primary provider txn id
       payment.providerTransactionId = sanitized.uuid || payment.providerTransactionId
@@ -223,8 +245,26 @@ const bankartCallback = async (req, res) => {
       payment.verifiedSignature = true
       payment.rawResponse = payload
 
-      // Update status and timestamps
-      payment.status = normalized
+      // Handle refunds specially
+      if (isRefund) {
+        // Map refund result
+        if (providerResult && ['OK', 'SUCCESS', 'APPROVED'].includes(providerResult.toUpperCase())) {
+          payment.status = 'refunded'
+          payment.refundStatus = 'refunded'
+          payment.refundedAt = new Date()
+          payment.refundAmount = payload.amount || payment.refundAmount
+          payment.refundTransactionId = payload.uuid || payment.refundTransactionId
+          payment.refundMerchantTransactionId = sanitized.merchantTransactionId || payment.refundMerchantTransactionId
+          payment.refundProviderResult = providerResult || payment.refundProviderResult
+        } else {
+          payment.refundStatus = 'failed'
+          payment.refundProviderResult = providerResult || payment.refundProviderResult
+        }
+      } else {
+        // Update status and timestamps for normal payments
+        payment.status = normalized
+      }
+
       payment.updatedAt = new Date()
 
       await payment.save()
@@ -237,7 +277,13 @@ const bankartCallback = async (req, res) => {
       try {
         const booking = await Booking.findById(payment.booking)
         if (booking) {
-          booking.paymentStatus = normalized
+          if (isRefund) {
+            booking.paymentStatus = 'refunded'
+            // Optionally set booking.status to refunded depending on business rules
+            booking.status = 'refunded'
+          } else {
+            booking.paymentStatus = normalized
+          }
           await booking.save()
         }
       } catch (e) {
