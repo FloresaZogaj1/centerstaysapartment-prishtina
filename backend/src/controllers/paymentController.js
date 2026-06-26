@@ -245,24 +245,7 @@ const bankartCallback = async (req, res) => {
       }
     }
 
-    // Generate and send invoice (idempotent). Don't block callback on invoice failures.
-    try {
-      if (payment.status === 'paid' && payment.booking) {
-        const booking = await Booking.findById(payment.booking)
-        if (booking) {
-          const invoiceService = require('../services/invoiceService')
-          try {
-            const inv = await invoiceService.generateAndSendInvoice(booking, payment)
-            if (!inv || !inv.ok) console.log('[Bankart Callback] invoice generation/send result:', inv)
-          } catch (e) { console.log('[Bankart Callback] invoice service error:', e && e.message ? e.message : e) }
-        }
-      }
-    } catch (e) {
-      console.log('[Bankart Callback] invoice handling unexpected error:', e && e.message ? e.message : e)
-    }
-
-    // Respond with exact content expected by Bankart
-    // Final mapping log for easy audit
+    // Final mapping log for easy audit (before responding)
     try {
       console.log('[Bankart Callback] final mapping:', {
         provider: 'bankart',
@@ -279,8 +262,45 @@ const bankartCallback = async (req, res) => {
       })
     } catch (e) {}
 
+    // Respond immediately so Bankart doesn't time out
+    try {
+      console.log('[Bankart Callback] responding 200 OK immediately', {
+        merchantTransactionId: sanitized.merchantTransactionId,
+        paymentId: String(payment._id),
+        bookingId: payment.booking ? String(payment.booking) : null,
+        mappedStatus: payment.status
+      })
+    } catch (e) {}
+
     res.set('Content-Type', 'text/plain')
-    return res.status(200).send('OK')
+    res.status(200).send('OK')
+
+    // Run invoice generation and email notifications asynchronously so they don't block the callback
+    setImmediate(async () => {
+      try {
+        if (payment.status === 'paid' && payment.booking) {
+          try {
+            const booking = await Booking.findById(payment.booking)
+            if (booking) {
+              const invoiceService = require('../services/invoiceService')
+              try {
+                const inv = await invoiceService.generateAndSendInvoice(booking, payment)
+                if (!inv || !inv.ok) console.log('[Bankart Callback][async] invoice generation/send result:', inv)
+              } catch (e) { console.log('[Bankart Callback][async] invoice service error:', e && e.message ? e.message : e) }
+
+              try { const ok = await require('../services/emailService').sendBookingPaidCustomerEmail(booking); if (!ok) console.log('[Bankart Callback][async] customer paid email not sent') } catch (e) { console.log('[Bankart Callback][async] Email send error (customer paid):', e && e.message ? e.message : e) }
+              try { const ok2 = await require('../services/emailService').sendBookingPaidAdminEmail(booking, payment); if (!ok2) console.log('[Bankart Callback][async] admin paid email not sent') } catch (e) { console.log('[Bankart Callback][async] Admin paid email failed', e && e.message ? e.message : e) }
+            }
+          } catch (e) {
+            console.log('[Bankart Callback][async] error during invoice/email flow:', e && e.message ? e.message : e)
+          }
+        }
+      } catch (e) {
+        console.log('[Bankart Callback][async] unexpected error in post-processing:', e && e.message ? e.message : e)
+      }
+    })
+
+    return
   } catch (error) {
     console.error('[Bankart Callback] error:', error)
     return res.status(500).json({ message: 'Internal server error' })
