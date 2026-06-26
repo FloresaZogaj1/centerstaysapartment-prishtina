@@ -8,7 +8,7 @@ const PaymentSchema = new mongoose.Schema(
     currency: { type: String, default: 'EUR' },
     status: {
       type: String,
-      enum: ['pending', 'paid', 'failed', 'cancelled'],
+      enum: ['pending', 'paid', 'failed', 'cancelled', 'refunded'],
       default: 'pending',
     },
     bankartOrderId: { type: String },

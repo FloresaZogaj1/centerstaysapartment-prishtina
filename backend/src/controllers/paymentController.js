@@ -281,19 +281,28 @@ const bankartCallback = async (req, res) => {
       console.log('[Bankart Callback] error saving provider info to payment:', e && e.message ? e.message : e)
     }
 
-    // Update booking status if linked
+    // Update booking paymentStatus if linked (do NOT change booking.status to 'refunded')
     if (payment.booking) {
       try {
         const booking = await Booking.findById(payment.booking)
         if (booking) {
           if (isRefund) {
             booking.paymentStatus = 'refunded'
-            // Optionally set booking.status to refunded depending on business rules
-            booking.status = 'refunded'
+            // Do NOT set booking.status = 'refunded' unless business logic explicitly requires it
           } else {
             booking.paymentStatus = normalized
           }
           await booking.save()
+
+          // Safe persistence log for refunds
+          if (isRefund) {
+            console.log('[Bankart Callback] refund persistence complete', {
+              paymentId: String(payment._id),
+              bookingId: String(booking._id),
+              paymentStatus: payment.status,
+              bookingPaymentStatus: booking.paymentStatus
+            })
+          }
         }
       } catch (e) {
         console.log('[Bankart Callback] error updating booking status:', e && e.message ? e.message : e)

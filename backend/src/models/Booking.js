@@ -45,7 +45,7 @@ const BookingSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ['unpaid', 'pending', 'paid', 'failed', 'cancelled'],
+      enum: ['unpaid', 'pending', 'paid', 'failed', 'cancelled', 'refunded'],
       default: 'unpaid',
     },
     bankartOrderId: { type: String },
