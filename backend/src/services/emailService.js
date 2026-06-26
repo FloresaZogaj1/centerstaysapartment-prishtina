@@ -18,9 +18,9 @@ function createTransporter(){
       pass: process.env.SMTP_PASS
     },
     // timeouts to avoid silent connection close
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 5000,
   })
 }
 

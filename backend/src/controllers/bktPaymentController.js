@@ -66,102 +66,118 @@ const createBktPayment = async (req, res) => {
 const handleBktCallback = async (req, res) => {
   try {
     const payload = req.body || {}
-    console.log('BKT callback received')
+
+    // Minimal sanitized log for quick inspection
+    try {
+      console.log('[BKT callback] received', {
+        method: req.method,
+        origin: req.headers && req.headers.origin,
+        referer: req.headers && req.headers.referer,
+        oid: payload.oid || payload.OID || payload.OrderId || payload.orderId || null,
+        ProcReturnCode: payload.ProcReturnCode || null,
+        Response: payload.Response || payload.response || null,
+        ErrMsg: payload.ErrMsg || payload.Errmsg || null,
+        ErrorCode: payload.ErrorCode || null,
+        bodyKeys: Object.keys(payload || {})
+      })
+    } catch (e) {}
 
     const receivedHash = payload.HASH || payload.hash
     if (!receivedHash) {
-      return res.status(400).json({ message: 'Missing NestPay HASH. Payment not updated.' })
+      console.log('[BKT callback] missing HASH - responding 400')
+      return res.status(400).type('text/plain').send('Missing HASH')
     }
 
     const verified = nestpay.verifyHashV3(payload, receivedHash, process.env.BKT_STORE_KEY)
     if (!verified) {
-      return res.status(400).json({ message: 'Invalid NestPay hash. Payment not updated.' })
+      console.log('[BKT callback] invalid HASH - responding 400')
+      return res.status(400).type('text/plain').send('Invalid HASH')
     }
 
-    // Extract order id (oid) from possible fields
-    const oid = payload.oid || payload.OID || payload.OrderId || payload.orderId
-    if (!oid) {
-      return res.status(400).json({ message: 'Missing order id (oid). Payment not updated.' })
-    }
+    // Respond immediately so the gateway does not time out
+    try { console.log('[BKT callback] responding 200 OK immediately') } catch (e) {}
+    res.status(200).type('text/plain').send('OK')
 
-    const booking = await Booking.findOne({ bookingNumber: oid }).populate('room')
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found for oid. Payment not updated.' })
-    }
+    // Do the heavier work asynchronously without blocking the response
+    setImmediate(async () => {
+      try {
+        // Extract order id (oid) from possible fields
+        const oid = payload.oid || payload.OID || payload.OrderId || payload.orderId
+        if (!oid) {
+          console.log('[BKT callback][async] missing oid - skipping DB update')
+          return
+        }
 
-    // Find latest payment for booking
-    let payment = await Payment.findOne({ booking: booking._id }).sort({ createdAt: -1 })
-    if (!payment) {
-      // If no payment exists, create a payment record to attach response to
-      payment = await Payment.create({ booking: booking._id, provider: 'BKT', amount: booking.pricing.totalAmount, currency: booking.pricing.currency || 'EUR', status: 'pending' })
-    }
+        const booking = await Booking.findOne({ bookingNumber: oid }).populate('room')
+        if (!booking) {
+          console.log('[BKT callback][async] booking not found for oid:', oid)
+          return
+        }
 
-    // Save raw response
-    payment.rawResponse = payload
+        // Find latest payment for booking
+        let payment = await Payment.findOne({ booking: booking._id }).sort({ createdAt: -1 })
+        if (!payment) {
+          payment = await Payment.create({ booking: booking._id, provider: 'BKT', amount: booking.pricing.totalAmount, currency: booking.pricing.currency || 'EUR', status: 'pending' })
+        }
 
-    // Determine status
-    const p = payload
-    let status = 'failed'
-    if ((p.Response && String(p.Response) === 'Approved') || (p.response && String(p.response) === 'Approved')) {
-      status = 'paid'
-    } else if (p.ProcReturnCode && String(p.ProcReturnCode) === '00') {
-      status = 'paid'
-    } else {
-      // fallback to mapNestpayStatus
-      status = nestpay.mapNestpayStatus(payload) || 'failed'
-      if (status !== 'paid') status = 'failed'
-    }
+        // Save raw response
+        payment.rawResponse = payload
 
-    if (status === 'paid') {
-      payment.status = 'paid'
-      booking.paymentStatus = 'paid'
-      booking.status = 'paid'
-    } else {
-      payment.status = 'failed'
-      booking.paymentStatus = 'failed'
-      booking.status = 'failed'
-    }
+        // Determine status
+        const p = payload
+        let status = 'failed'
+        if ((p.Response && String(p.Response) === 'Approved') || (p.response && String(p.response) === 'Approved')) {
+          status = 'paid'
+        } else if (p.ProcReturnCode && String(p.ProcReturnCode) === '00') {
+          status = 'paid'
+        } else {
+          status = nestpay.mapNestpayStatus(payload) || 'failed'
+          if (status !== 'paid') status = 'failed'
+        }
 
-    await payment.save()
-    await booking.save()
+        if (status === 'paid') {
+          payment.status = 'paid'
+          booking.paymentStatus = 'paid'
+          booking.status = 'paid'
+        } else {
+          payment.status = 'failed'
+          booking.paymentStatus = 'failed'
+          booking.status = 'failed'
+        }
 
-    // Generate and send invoice (idempotent). Don't block callback on invoice failures.
-    try {
-      if (payment.status === 'paid') {
-        const invoiceService = require('../services/invoiceService')
-        try {
-          const inv = await invoiceService.generateAndSendInvoice(booking, payment)
-          if (!inv || !inv.ok) console.log('[handleBktCallback] invoice generation/send result:', inv)
-        } catch (e) { console.log('[handleBktCallback] invoice service error:', e && e.message ? e.message : e) }
+        await payment.save()
+        await booking.save()
+
+        // Run post-payment side effects asynchronously; do not block
+        setImmediate(async () => {
+          try {
+            if (payment.status === 'paid') {
+              const invoiceService = require('../services/invoiceService')
+              try {
+                const inv = await invoiceService.generateAndSendInvoice(booking, payment)
+                if (!inv || !inv.ok) console.log('[BKT callback][async] invoice generation/send result:', inv)
+              } catch (e) { console.log('[BKT callback][async] invoice service error:', e && e.message ? e.message : e) }
+
+              try { await emailService.sendBookingPaidCustomerEmail(booking) } catch (e) { console.log('[BKT callback][async] Email send error (customer paid):', e && e.message ? e.message : e) }
+              try { await emailService.sendBookingPaidAdminEmail(booking, payment) } catch (e) { console.log('[BKT callback][async] Admin paid email failed', e && e.message ? e.message : e) }
+            } else {
+              try { await emailService.sendBookingFailedCustomerEmail(booking) } catch (e) { console.log('[BKT callback][async] Email send error (customer failed):', e && e.message ? e.message : e) }
+              try { await emailService.sendBookingFailedAdminEmail(booking, payment) } catch (e) { console.log('[BKT callback][async] Admin failed email failed', e && e.message ? e.message : e) }
+            }
+          } catch (e) {
+            console.log('[BKT callback][async] post-payment side effects failed:', e && e.message ? e.message : e)
+          }
+        })
+      } catch (e) {
+        console.error('[BKT callback][async] error processing payload:', e && e.message ? e.message : e)
       }
-    } catch (e) {
-      console.log('[handleBktCallback] invoice handling unexpected error:', e && e.message ? e.message : e)
-    }
+    })
 
-    // Send notification emails (do not let email failures affect callback response)
-    try {
-      if (payment.status === 'paid') {
-        try { await emailService.sendBookingPaidCustomerEmail(booking) } catch (e) { console.log('Email send error (customer paid):', e && e.message ? e.message : e) }
-        try {
-          const ok = await emailService.sendBookingPaidAdminEmail(booking, payment)
-          if (!ok) console.log('Admin paid email not sent or failed (see logs)')
-        } catch (e) { console.log('Admin email failed', e && e.message ? e.message : e) }
-      } else {
-        try { await emailService.sendBookingFailedCustomerEmail(booking) } catch (e) { console.log('Email send error (customer failed):', e && e.message ? e.message : e) }
-        try {
-          const ok = await emailService.sendBookingFailedAdminEmail(booking, payment)
-          if (!ok) console.log('Admin failed email not sent or failed (see logs)')
-        } catch (e) { console.log('Admin email failed', e && e.message ? e.message : e) }
-      }
-    } catch (e) {
-      // Ensure we never fail the callback due to email errors
-      console.log('Email notifications encountered an unexpected error:', e && e.message ? e.message : e)
-    }
-
-    return res.json({ message: 'BKT callback processed.', paymentStatus: payment.status, bookingStatus: booking.status })
+    return
   } catch (error) {
     console.error('Error in BKT callback handler:', error)
-    return res.status(500).json({ message: error.message })
+    // If something goes wrong before we've responded, ensure a safe response
+    try { return res.status(500).json({ message: error.message }) } catch (e) { return }
   }
 }
 
