@@ -82,6 +82,23 @@ const handleBktCallback = async (req, res) => {
       })
     } catch (e) {}
 
+    // Exact requested sanitized log for provider values (no PAN/CVV/hash/auth headers)
+    try {
+      console.log('[BKT callback] provider values', {
+        oid: req.body?.oid,
+        ProcReturnCode: req.body?.ProcReturnCode,
+        Response: req.body?.Response,
+        ErrMsg: req.body?.ErrMsg,
+        ErrorCode: req.body?.ErrorCode,
+        mdStatus: req.body?.mdStatus,
+        traceId: req.body?.traceId,
+        TranType: req.body?.TranType,
+        amount: req.body?.amount,
+        currency: req.body?.currency,
+        clientid: req.body?.clientid
+      })
+    } catch (e) {}
+
     // Log sanitized provider values for easier debugging of declines (no PAN/CVV or full card data)
     try {
       console.log('[BKT callback] provider values', {
@@ -268,6 +285,23 @@ const bktFailHandler = async (req, res) => {
         referer: req.headers && req.headers.referer,
         queryKeys: Object.keys(req.query || {}),
         bodyKeys: Object.keys(req.body || {})
+      })
+    } catch (e) {}
+
+    // Exact requested sanitized log for fail return provider values
+    try {
+      console.log('[BKT fail return] provider values', {
+        oid: req.body?.oid,
+        ProcReturnCode: req.body?.ProcReturnCode,
+        Response: req.body?.Response,
+        ErrMsg: req.body?.ErrMsg,
+        ErrorCode: req.body?.ErrorCode,
+        mdStatus: req.body?.mdStatus,
+        traceId: req.body?.traceId,
+        TranType: req.body?.TranType,
+        amount: req.body?.amount,
+        currency: req.body?.currency,
+        clientid: req.body?.clientid
       })
     } catch (e) {}
 
