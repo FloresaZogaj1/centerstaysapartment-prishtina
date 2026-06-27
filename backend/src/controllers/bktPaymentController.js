@@ -82,6 +82,23 @@ const handleBktCallback = async (req, res) => {
       })
     } catch (e) {}
 
+    // Log sanitized provider values for easier debugging of declines (no PAN/CVV or full card data)
+    try {
+      console.log('[BKT callback] provider values', {
+        oid: payload.oid || payload.OID || payload.OrderId || payload.orderId || null,
+        ProcReturnCode: payload.ProcReturnCode || null,
+        Response: payload.Response || payload.response || null,
+        ErrMsg: payload.ErrMsg || payload.Errmsg || null,
+        ErrorCode: payload.ErrorCode || null,
+        mdStatus: payload.mdStatus || null,
+        traceId: payload.traceId || null,
+        TranType: payload.TranType || null,
+        amount: payload.amount || null,
+        currency: payload.currency || null,
+        clientid: payload.clientid || null
+      })
+    } catch (e) {}
+
     const receivedHash = payload.HASH || payload.hash
     if (!receivedHash) {
       console.log('[BKT callback] missing HASH - responding 400')
@@ -251,6 +268,23 @@ const bktFailHandler = async (req, res) => {
         referer: req.headers && req.headers.referer,
         queryKeys: Object.keys(req.query || {}),
         bodyKeys: Object.keys(req.body || {})
+      })
+    } catch (e) {}
+
+    // Log sanitized provider values for fail return (no PAN/CVV or full card details)
+    try {
+      console.log('[BKT fail return] provider values', {
+        oid: req.body?.oid || req.query?.oid || null,
+        ProcReturnCode: req.body?.ProcReturnCode || req.query?.ProcReturnCode || null,
+        Response: req.body?.Response || req.query?.Response || null,
+        ErrMsg: req.body?.ErrMsg || req.query?.ErrMsg || null,
+        ErrorCode: req.body?.ErrorCode || req.query?.ErrorCode || null,
+        mdStatus: req.body?.mdStatus || req.query?.mdStatus || null,
+        traceId: req.body?.traceId || req.query?.traceId || null,
+        TranType: req.body?.TranType || req.query?.TranType || null,
+        amount: req.body?.amount || req.query?.amount || null,
+        currency: req.body?.currency || req.query?.currency || null,
+        clientid: req.body?.clientid || req.query?.clientid || null
       })
     } catch (e) {}
 
