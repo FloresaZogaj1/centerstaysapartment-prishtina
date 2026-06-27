@@ -73,4 +73,8 @@ app.use('/api/admin', adminRoutes)
 app.get('/health', (req, res) => res.json({ ok: true }))
 
 const PORT = process.env.PORT || 5000
-app.listen(PORT, () => console.log(`Server listening on ${PORT}`))
+app.listen(PORT, () => {
+	try { console.log(`Server listening on ${PORT}`) } catch (e) {}
+	// Boot marker for verifying deployed instances contain BKT logging changes
+	try { console.log('[BOOT] BKT provider-values logging version active') } catch (e) {}
+})
