@@ -29,6 +29,7 @@ const calculateBookingTotalController = async (req, res) => {
       pricing,
     })
   } catch (error) {
+    console.error('[calculateBooking] error', error && error.message ? error.message : error)
     return res.status(500).json({ message: error.message })
   }
 }
@@ -100,6 +101,7 @@ const createBookingController = async (req, res) => {
 
     return res.status(201).json(booking)
   } catch (error) {
+    console.error('[createBooking] error', error && error.message ? error.message : error)
     return res.status(500).json({ message: error.message })
   }
 }
