@@ -82,6 +82,21 @@ const handleBktCallback = async (req, res) => {
       })
     } catch (e) {}
 
+    // Safe tolerant dump: log any unexpected keys/values (truncated) while skipping sensitive keys
+    try {
+      const safeDump = {}
+      const sensitivePattern = /pan|card|cvv|cv2|hash|storekey|store|auth|password/i
+      Object.keys(payload || {}).forEach(k => {
+        if (sensitivePattern.test(k)) return
+        const v = payload[k]
+        if (v === undefined || v === null) return
+        let s = typeof v === 'string' ? v : JSON.stringify(v)
+        if (s.length > 300) s = s.slice(0, 300) + '...'
+        safeDump[k] = s
+      })
+      if (Object.keys(safeDump).length > 0) console.log('[BKT callback] safeDump', safeDump)
+    } catch (e) {}
+
     // Exact requested sanitized log for provider values (no PAN/CVV/hash/auth headers)
     try {
       console.log('[BKT callback] provider values', {
@@ -303,6 +318,22 @@ const bktFailHandler = async (req, res) => {
         currency: req.body?.currency,
         clientid: req.body?.clientid
       })
+    } catch (e) {}
+
+    // Safe tolerant dump for fail handler as well
+    try {
+      const body = req.method === 'GET' ? req.query : req.body
+      const safeDump = {}
+      const sensitivePattern = /pan|card|cvv|cv2|hash|storekey|store|auth|password/i
+      Object.keys(body || {}).forEach(k => {
+        if (sensitivePattern.test(k)) return
+        const v = body[k]
+        if (v === undefined || v === null) return
+        let s = typeof v === 'string' ? v : JSON.stringify(v)
+        if (s.length > 300) s = s.slice(0, 300) + '...'
+        safeDump[k] = s
+      })
+      if (Object.keys(safeDump).length > 0) console.log('[BKT fail return] safeDump', safeDump)
     } catch (e) {}
 
     // Log sanitized provider values for fail return (no PAN/CVV or full card details)
