@@ -373,3 +373,83 @@ const bankartCallback = async (req, res) => {
 
 module.exports.bankartCallback = bankartCallback
 
+/**
+ * Legacy BKT handlers (safe logging helpers)
+ * Some deployments may wire BKT redirects to this controller file. Add exact
+ * sanitized logs here so provider decline values are always captured.
+ */
+const bktFailHandlerLegacy = async (req, res) => {
+  try {
+    // Mirror existing safe logging format
+    try {
+      console.log('[BKT fail return] received', {
+        method: req.method,
+        origin: req.headers && req.headers.origin,
+        referer: req.headers && req.headers.referer,
+        queryKeys: Object.keys(req.query || {}),
+        bodyKeys: Object.keys(req.body || {})
+      })
+    } catch (e) {}
+
+    // Exact requested sanitized log for provider values
+    try {
+      console.log('[BKT fail return] provider values', {
+        oid: req.body?.oid,
+        ProcReturnCode: req.body?.ProcReturnCode,
+        Response: req.body?.Response,
+        ErrMsg: req.body?.ErrMsg,
+        ErrorCode: req.body?.ErrorCode,
+        mdStatus: req.body?.mdStatus,
+        traceId: req.body?.traceId,
+        TranType: req.body?.TranType,
+        amount: req.body?.amount,
+        currency: req.body?.currency,
+        clientid: req.body?.clientid
+      })
+    } catch (e) {}
+
+    // If this legacy handler is wired, preserve existing redirect behavior
+    const frontFailHash = process.env.FRONT_FAIL || process.env.FRONT_FAIL_HASH || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
+    return res.redirect(String(frontFailHash))
+  } catch (err) {
+    console.error('[bktFailHandlerLegacy] error:', err && err.message ? err.message : err)
+    const frontFailHash = process.env.FRONT_FAIL || process.env.FRONT_FAIL_HASH || (process.env.FRONTEND_URL ? `${process.env.FRONTEND_URL}/payment/fail` : '/payment/fail')
+    return res.redirect(String(frontFailHash))
+  }
+}
+
+const bktCallbackLegacy = async (req, res) => {
+  try {
+    try {
+      console.log('[BKT callback] received', { method: req.method, bodyKeys: Object.keys(req.body || {}) })
+    } catch (e) {}
+
+    try {
+      console.log('[BKT callback] provider values', {
+        oid: req.body?.oid,
+        ProcReturnCode: req.body?.ProcReturnCode,
+        Response: req.body?.Response,
+        ErrMsg: req.body?.ErrMsg,
+        ErrorCode: req.body?.ErrorCode,
+        mdStatus: req.body?.mdStatus,
+        traceId: req.body?.traceId,
+        TranType: req.body?.TranType,
+        amount: req.body?.amount,
+        currency: req.body?.currency,
+        clientid: req.body?.clientid
+      })
+    } catch (e) {}
+
+    // Respond 200 quickly; real processing may be async elsewhere in the app
+    res.set('Content-Type', 'text/plain')
+    return res.status(200).send('OK')
+  } catch (e) {
+    console.error('[bktCallbackLegacy] error:', e && e.message ? e.message : e)
+    res.set('Content-Type', 'text/plain')
+    return res.status(200).send('OK')
+  }
+}
+
+module.exports.bktFailHandlerLegacy = bktFailHandlerLegacy
+module.exports.bktCallbackLegacy = bktCallbackLegacy
+
