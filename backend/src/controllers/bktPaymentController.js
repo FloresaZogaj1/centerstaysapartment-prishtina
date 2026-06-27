@@ -25,34 +25,60 @@ const createBktPayment = async (req, res) => {
       status: 'pending'
     })
 
+    // Boot marker to detect deployed instances specifically for create-payment
+    try { console.log('[BOOT] BKT create-payment form debug active') } catch (e) {}
+
+    // Sanitize critical envs before building the form
+    const cleanEnv = (v) => String(v || '').replace(/[\r\n\t]/g, '').trim()
+    const gatewayUrl = cleanEnv(process.env.BKT_3D_POST_URL || process.env.BKT_GATEWAY_URL)
+    const okUrl = cleanEnv(process.env.BKT_OK_URL || process.env.BKT_SUCCESS_URL)
+    const failUrl = cleanEnv(process.env.BKT_FAIL_URL || process.env.BKT_CANCEL_URL)
+    const cancelUrl = cleanEnv(process.env.BKT_CANCEL_URL || process.env.BKT_FAIL_URL)
+    const callbackUrl = cleanEnv(process.env.BKT_CALLBACK_URL)
+    const clientId = cleanEnv(process.env.BKT_CLIENT_ID)
+    const storeKey = cleanEnv(process.env.BKT_STORE_KEY)
+    const storeType = cleanEnv(process.env.BKT_STORE_TYPE)
+
+    // Validate gateway URL and absence of CR/LF in URLs
+    if (!gatewayUrl || !gatewayUrl.startsWith('https://')) throw new Error('[BKT] Invalid gateway URL')
+    if (/[\r\n]/.test(gatewayUrl + okUrl + failUrl + cancelUrl + callbackUrl)) throw new Error('[BKT] BKT env URLs contain newline characters')
+
+    // Build the form using the nestpay service but ensure it uses cleaned values
+    // The nestpay service already uses process.env; temporarily override values for safety
+    process.env.BKT_3D_POST_URL = gatewayUrl
+    process.env.BKT_OK_URL = okUrl
+    process.env.BKT_FAIL_URL = failUrl
+    process.env.BKT_CANCEL_URL = cancelUrl
+    process.env.BKT_CALLBACK_URL = callbackUrl
+    process.env.BKT_CLIENT_ID = clientId
+    process.env.BKT_STORE_KEY = storeKey
+    process.env.BKT_STORE_TYPE = storeType
+
     const form = nestpay.create3DPayHostingFields({ booking, payment })
 
-    // Safe diagnostic logs: show which customer-facing URLs are being sent to BKT
+    // Ensure returned action and fields are cleaned as well
+    const formAction = String(form && form.action ? String(form.action) : gatewayUrl)
+    const htmlForm = { action: formAction, method: 'POST', fields: form.fields }
+
+    // Safe create response log for frontend handling
     try {
-      const fields = form && form.fields ? form.fields : {}
-      const okUrl = fields.okUrl
-      const failUrl = fields.failUrl
-      const cancelUrl = fields.cancelUrl
-      const callbackUrl = fields.callbackUrl
+      const fields = htmlForm.fields || {}
       const orderId = String(fields.oid || fields.OID || fields.OrderId || fields.orderId || '(unset)')
       const amt = String(fields.amount || payment.amount || (booking && booking.pricing && booking.pricing.totalAmount) || '(unset)')
-      // Log exactly the backend endpoints being sent (safe)
-      console.log('[createBktPayment] BKT redirect fields being sent:')
-      console.log('okUrl=%s', String(okUrl || '(unset)'))
-      console.log('failUrl=%s', String(failUrl || '(unset)'))
-      console.log('cancelUrl=%s', String(cancelUrl || '(unset)'))
-      console.log('callbackUrl=%s', String(callbackUrl || '(unset)'))
-      console.log('bookingId=%s orderId=%s amount=%s paymentId=%s', String(booking._id), orderId, amt, String(payment._id))
-    } catch (e) { /* swallow logging errors */ }
+      console.log('[createBktPayment] response to frontend', {
+        hasRedirectUrl: !!htmlForm.action,
+        redirectUrlHost: htmlForm.action ? (() => { try { return new URL(htmlForm.action).host } catch (e) { return null } })() : null,
+        hasHtmlForm: !!htmlForm,
+        gatewayUrl: JSON.stringify(gatewayUrl),
+        formAction: JSON.stringify(formAction),
+        paymentId: String(payment._id),
+        bookingId: String(booking._id),
+        orderId,
+        amount: amt
+      })
+    } catch (e) {}
 
-    return res.json({
-      message: 'BKT NestPay payment form created.',
-      form: {
-        action: form.action,
-        method: 'POST',
-        fields: form.fields
-      }
-    })
+    return res.json({ message: 'BKT NestPay payment form created.', form: htmlForm })
   } catch (error) {
     return res.status(500).json({ message: error.message })
   }
