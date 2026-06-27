@@ -1,6 +1,11 @@
 "use strict"
 const crypto = require('crypto')
 
+// Helper to clean environment values: remove CR/LF/TAB and trim
+function cleanEnv (value) {
+  return String(value || '').replace(/[\r\n\t]/g, '').trim()
+}
+
 // Required environment variables for BKT (fail fast if missing)
 // Required envs: some have alternate names (OK/FAIL). We'll fail fast for truly required ones,
 // but allow OK/FAIL alternatives for redirect endpoints.
@@ -95,18 +100,18 @@ function create3DPayHostingFields ({ booking, payment }) {
 
   // Build the parameters strictly from environment and inputs (no hardcoded/demo fallbacks)
   const params = {
-    clientid: process.env.BKT_CLIENT_ID,
+    clientid: cleanEnv(process.env.BKT_CLIENT_ID),
     amount: String(amount),
     oid: String(oid),
     // Use explicit backend endpoints for BKT redirects so gateway returns to the server
-    okUrl: process.env.BKT_OK_URL,
-    failUrl: process.env.BKT_FAIL_URL,
+    okUrl: cleanEnv(process.env.BKT_OK_URL || process.env.BKT_SUCCESS_URL),
+    failUrl: cleanEnv(process.env.BKT_FAIL_URL || process.env.BKT_CANCEL_URL),
     // Some setups may support a cancel URL; fallback to failUrl if not set
-    cancelUrl: process.env.BKT_CANCEL_URL || process.env.BKT_FAIL_URL,
-    callbackUrl: process.env.BKT_CALLBACK_URL,
-    TranType: process.env.BKT_TRAN_TYPE,
-    storetype: process.env.BKT_STORE_TYPE,
-    currency: process.env.BKT_CURRENCY,
+    cancelUrl: cleanEnv(process.env.BKT_CANCEL_URL || process.env.BKT_FAIL_URL),
+    callbackUrl: cleanEnv(process.env.BKT_CALLBACK_URL),
+    TranType: cleanEnv(process.env.BKT_TRAN_TYPE),
+    storetype: cleanEnv(process.env.BKT_STORE_TYPE),
+    currency: cleanEnv(process.env.BKT_CURRENCY),
     rnd: String(Date.now()),
     hashAlgorithm: 'ver3',
     encoding: 'UTF-8'
@@ -124,6 +129,23 @@ function create3DPayHostingFields ({ booking, payment }) {
   if (params.cancelUrl && !String(params.cancelUrl).includes('/api/payments/bkt/fail')) errors.push('BKT_CANCEL_URL must include /api/payments/bkt/fail')
   if (params.callbackUrl && !String(params.callbackUrl).includes('/api/payments/bkt/callback')) errors.push('BKT_CALLBACK_URL must include /api/payments/bkt/callback')
 
+  // Ensure there are no CR/LF characters lingering in URLs
+  for (const [key, value] of Object.entries({ okUrl: params.okUrl, failUrl: params.failUrl, cancelUrl: params.cancelUrl, callbackUrl: params.callbackUrl })) {
+    if (typeof value === 'string' && /[\r\n]/.test(value)) {
+      errors.push(`${key} contains newline characters`)
+    }
+  }
+
+  // Log sanitized BKT URLs so CR/LF (as JSON escaped) is visible if present
+  try {
+    console.log('[createBktPayment] sanitized BKT URLs', {
+      okUrl: JSON.stringify(params.okUrl),
+      failUrl: JSON.stringify(params.failUrl),
+      cancelUrl: JSON.stringify(params.cancelUrl),
+      callbackUrl: JSON.stringify(params.callbackUrl)
+    })
+  } catch (e) {}
+
   if (errors.length > 0) {
     const err = new Error('BKT redirect URL validation failed: ' + errors.join('; '))
     err.code = 'bkt_redirect_validation_failed'
@@ -131,7 +153,7 @@ function create3DPayHostingFields ({ booking, payment }) {
     throw err
   }
 
-  const storeKey = process.env.BKT_STORE_KEY
+  const storeKey = cleanEnv(process.env.BKT_STORE_KEY)
   const hash = generateHashV3(params, storeKey)
 
   // Do NOT include storeKey or any secret in the returned fields
@@ -139,7 +161,7 @@ function create3DPayHostingFields ({ booking, payment }) {
   returnedFields.hash = hash
 
   return {
-    action: process.env.BKT_3D_POST_URL,
+    action: cleanEnv(process.env.BKT_3D_POST_URL),
     fields: returnedFields
   }
 }
