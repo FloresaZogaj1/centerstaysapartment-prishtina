@@ -2,6 +2,11 @@ const Booking = require('../models/Booking')
 const Payment = require('../models/Payment')
 const bankartService = require('../services/bankartService')
 
+// Boot marker: helps verify deployed instances are running this commit
+try {
+  console.log('[BOOT] BKT provider-values logging version active')
+} catch (e) {}
+
 const createBankartPayment = async (req, res) => {
   try {
     const { bookingId } = req.body
