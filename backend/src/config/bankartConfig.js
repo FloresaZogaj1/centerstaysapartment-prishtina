@@ -13,18 +13,20 @@ const REQUIRED_PROD_VARS = [
 ]
 
 function loadConfig() {
+  // Trim environment inputs to avoid trailing newlines or whitespace
+  const trim = v => (typeof v === 'string' ? v.trim() : v)
   return {
-    mode: (process.env.NLB_BANKART_MODE || '').toLowerCase(),
-    apiKey: process.env.NLB_BANKART_API_KEY || '',
-    sharedSecret: process.env.NLB_BANKART_SHARED_SECRET || '',
-    publicIntegrationKey: process.env.NLB_BANKART_PUBLIC_INTEGRATION_KEY || '',
-  apiUsername: process.env.NLB_BANKART_API_USERNAME || '',
-  apiPassword: process.env.NLB_BANKART_API_PASSWORD || '',
-    postUrl: process.env.NLB_BANKART_POST_URL || '',
-    callbackUrl: process.env.NLB_BANKART_CALLBACK_URL || '',
-    successUrl: process.env.NLB_BANKART_SUCCESS_URL || '',
-    failUrl: process.env.NLB_BANKART_FAIL_URL || '',
-    cancelUrl: process.env.NLB_BANKART_CANCEL_URL || '',
+    mode: trim(process.env.NLB_BANKART_MODE || '').toLowerCase(),
+    apiKey: trim(process.env.NLB_BANKART_API_KEY || ''),
+    sharedSecret: trim(process.env.NLB_BANKART_SHARED_SECRET || ''),
+    publicIntegrationKey: trim(process.env.NLB_BANKART_PUBLIC_INTEGRATION_KEY || ''),
+    apiUsername: trim(process.env.NLB_BANKART_API_USERNAME || ''),
+    apiPassword: trim(process.env.NLB_BANKART_API_PASSWORD || ''),
+    postUrl: trim(process.env.NLB_BANKART_POST_URL || ''),
+    callbackUrl: trim(process.env.NLB_BANKART_CALLBACK_URL || ''),
+    successUrl: trim(process.env.NLB_BANKART_SUCCESS_URL || ''),
+    failUrl: trim(process.env.NLB_BANKART_FAIL_URL || ''),
+    cancelUrl: trim(process.env.NLB_BANKART_CANCEL_URL || ''),
     // Safety: explicit confirmation required to enable live flows. Must be set
     // to 'true' in environment to enable production usage.
     confirmed: String(process.env.NLB_BANKART_CONFIRMED_IMPLEMENTATION || '').toLowerCase() === 'true'
@@ -35,12 +37,22 @@ function validateConfig (cfg) {
   // If running in live mode, require all production vars AND explicit confirmation
   if (cfg.mode === 'live') {
     for (const key of REQUIRED_PROD_VARS) {
-      if (!process.env[key] || String(process.env[key]).trim() === '') {
+      const v = process.env[key]
+      if (!v || String(v).trim() === '') {
         throw new Error(`NLB/Bankart live mode requires ${key} to be set in environment`)
       }
     }
     if (!cfg.confirmed) {
       throw new Error('NLB/Bankart live mode requires NLB_BANKART_CONFIRMED_IMPLEMENTATION=true for safety')
+    }
+  }
+
+  // Validate trimmed URL sanity in all modes (fail fast if obviously invalid)
+  const urlFields = ['postUrl', 'callbackUrl', 'successUrl', 'failUrl', 'cancelUrl']
+  for (const f of urlFields) {
+    const v = cfg[f]
+    if (v && /\s/.test(String(v))) {
+      throw new Error(`Bankart config: environment variable ${f} contains whitespace after trim — please correct ${f}`)
     }
   }
 }

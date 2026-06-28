@@ -15,7 +15,7 @@ async function seed() {
         name: 'Standard Apartment',
         slug: 'standard-apartment',
         description: 'Zgjidhje praktike dhe komode për qëndrime të shkurtra në qytet.',
-        basePricePerNight: 20,
+        basePricePerNight: 120,
         maxGuests: 2,
         imageUrl: '/images/standard-apartment.jpg',
         amenities: ['1 dhomë gjumi', 'Wi-Fi', 'Kuzhinë e vogël', 'Banjo private'],
