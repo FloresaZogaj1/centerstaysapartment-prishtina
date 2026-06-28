@@ -79,4 +79,16 @@ app.listen(PORT, () => {
 	try { console.log('[BOOT] BKT provider-values logging version active') } catch (e) {}
 	// Boot marker for Bankart immediate-OK/refund-safe callback version
 	try { console.log('[BOOT] Bankart callback immediate-OK refund-safe version active') } catch (e) {}
+	// Boot marker for payment result notifications
+	try { console.log('[BOOT] Payment result notification automation active') } catch (e) {}
+	try {
+		const emailService = require('./services/emailService')
+		console.log('[BOOT] Notification service wiring active - emailConfigured=', emailService.isEmailConfigured())
+		console.log('[BOOT] Email config', {
+			smtpHostExists: !!process.env.SMTP_HOST,
+			smtpUserExists: !!process.env.SMTP_USER,
+			smtpPassExists: !!process.env.SMTP_PASS,
+			adminEmailExists: !!process.env.ADMIN_EMAIL
+		})
+	} catch (e) {}
 })

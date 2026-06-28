@@ -13,6 +13,10 @@ const PaymentSchema = new mongoose.Schema(
     },
     bankartOrderId: { type: String },
     bankartTransactionId: { type: String },
+  // Generic order identifiers for other providers (e.g., BKT oid)
+  orderId: { type: String },
+  providerOrderId: { type: String },
+  merchantTransactionId: { type: String },
   // Provider callback metadata (persisted for audit + troubleshooting)
   providerTransactionId: { type: String }, // primary provider transaction id (uuid)
   providerUuid: { type: String },
@@ -34,6 +38,24 @@ const PaymentSchema = new mongoose.Schema(
     // Invoice metadata to ensure idempotent invoice sending
     invoiceNumber: { type: String },
     invoiceSentAt: { type: Date }
+      ,
+      // Notification timestamps (idempotency for emails)
+      paidCustomerEmailSentAt: { type: Date },
+      paidAdminEmailSentAt: { type: Date },
+      failedCustomerEmailSentAt: { type: Date },
+      failedAdminEmailSentAt: { type: Date },
+      cancelledCustomerEmailSentAt: { type: Date },
+      cancelledAdminEmailSentAt: { type: Date },
+      expiredCustomerEmailSentAt: { type: Date },
+      expiredAdminEmailSentAt: { type: Date },
+      refundedCustomerEmailSentAt: { type: Date },
+      refundedAdminEmailSentAt: { type: Date },
+    // last notification summary
+    lastNotificationStatus: { type: String },
+    lastNotificationAt: { type: Date },
+    lastNotificationReason: { type: String },
+      // last notification summary
+    // legacy placement kept above
   },
   { timestamps: true }
 )

@@ -60,6 +60,21 @@ const createBktPayment = async (req, res) => {
     const formAction = String(form && form.action ? String(form.action) : gatewayUrl)
     const htmlForm = { action: formAction, method: 'POST', fields: form.fields }
 
+    // Persist provider order id / oid to payment for later lookup in callbacks
+    try {
+      const fields = htmlForm.fields || {}
+      const orderId = String(fields.oid || fields.OID || fields.OrderId || fields.orderId || '')
+      if (orderId) {
+        payment.providerOrderId = orderId
+        payment.orderId = orderId
+        payment.provider = 'BKT'
+        payment.providerStatus = 'pending'
+        await payment.save()
+      }
+    } catch (e) {
+      console.error('[createBktPayment] failed to persist orderId on payment', e && e.message ? e.message : e)
+    }
+
     // Safe create response log for frontend handling
     try {
       const fields = htmlForm.fields || {}
@@ -78,7 +93,7 @@ const createBktPayment = async (req, res) => {
       })
     } catch (e) {}
 
-    return res.json({ message: 'BKT NestPay payment form created.', form: htmlForm })
+  return res.json({ message: 'BKT NestPay payment form created.', form: htmlForm })
   } catch (error) {
     return res.status(500).json({ message: error.message })
   }
@@ -233,11 +248,15 @@ const handleBktCallback = async (req, res) => {
                 if (!inv || !inv.ok) console.log('[BKT callback][async] invoice generation/send result:', inv)
               } catch (e) { console.log('[BKT callback][async] invoice service error:', e && e.message ? e.message : e) }
 
-              try { await emailService.sendBookingPaidCustomerEmail(booking) } catch (e) { console.log('[BKT callback][async] Email send error (customer paid):', e && e.message ? e.message : e) }
-              try { await emailService.sendBookingPaidAdminEmail(booking, payment) } catch (e) { console.log('[BKT callback][async] Admin paid email failed', e && e.message ? e.message : e) }
+              try {
+                const notificationService = require('../services/notificationService')
+                await notificationService.handlePaymentResultNotification({ paymentId: String(payment._id), bookingId: String(booking._id), status: 'paid' })
+              } catch (e) { console.log('[BKT callback][async] notificationService error (paid):', e && e.message ? e.message : e) }
             } else {
-              try { await emailService.sendBookingFailedCustomerEmail(booking) } catch (e) { console.log('[BKT callback][async] Email send error (customer failed):', e && e.message ? e.message : e) }
-              try { await emailService.sendBookingFailedAdminEmail(booking, payment) } catch (e) { console.log('[BKT callback][async] Admin failed email failed', e && e.message ? e.message : e) }
+              try {
+                const notificationService = require('../services/notificationService')
+                await notificationService.handlePaymentResultNotification({ paymentId: String(payment._id), bookingId: String(booking._id), status: 'failed' })
+              } catch (e) { console.log('[BKT callback][async] notificationService error (failed):', e && e.message ? e.message : e) }
             }
           } catch (e) {
             console.log('[BKT callback][async] post-payment side effects failed:', e && e.message ? e.message : e)
@@ -290,6 +309,17 @@ const bktOkHandler = async (req, res) => {
           booking.status = 'paid'
           await payment.save()
           await booking.save()
+          // Non-blocking notification for paid payment (idempotent)
+          setImmediate(async () => {
+            try {
+              const notificationService = require('../services/notificationService')
+              console.log('[Payment Notification] started', { provider: 'bkt', status: 'paid', bookingId: String(booking._id), paymentId: String(payment._id), amount: payment.amount })
+              const resn = await notificationService.handlePaymentResultNotification({ bookingId: String(booking._id), paymentId: String(payment._id), provider: 'bkt', status: 'paid', amount: payment.amount })
+              console.log('[Payment Notification] completed', { bookingId: String(booking._id), paymentId: String(payment._id), result: resn && resn.ok })
+            } catch (e) {
+              console.error('[Payment Notification] error', e && e.message ? e.message : e)
+            }
+          })
         } else {
           // keep pending, but attach raw response for later investigation
           payment.rawResponse = payload
@@ -381,19 +411,91 @@ const bktFailHandler = async (req, res) => {
 
     const oid = payload.oid || payload.OID || payload.OrderId || payload.orderId || null
     if (oid) {
-      const booking = await Booking.findOne({ bookingNumber: oid }).populate('room')
-      if (booking) {
-        let payment = await Payment.findOne({ booking: booking._id }).sort({ createdAt: -1 })
-        if (!payment) {
-          payment = await Payment.create({ booking: booking._id, provider: 'BKT', amount: booking.pricing.totalAmount, currency: booking.pricing.currency || 'EUR', status: 'pending' })
+      // First try to find payment by stored order identifiers
+      let payment = await Payment.findOne({
+        $or: [
+          { providerOrderId: String(oid) },
+          { orderId: String(oid) },
+          { merchantTransactionId: String(oid) }
+        ]
+      })
+
+      // Fallback: find booking by bookingNumber then latest payment for that booking
+      let booking = null
+      if (!payment) {
+        booking = await Booking.findOne({ bookingNumber: oid }).populate('room')
+        if (booking) {
+          payment = await Payment.findOne({ booking: booking._id }).sort({ createdAt: -1 })
         }
-        // Mark as failed/cancelled conservatively
-        payment.status = 'failed'
-        booking.paymentStatus = 'failed'
-        booking.status = 'failed'
-        payment.rawResponse = payload
-        await payment.save()
-        await booking.save()
+      } else {
+        // populate booking if payment found
+        if (payment.booking) booking = await Booking.findById(payment.booking).populate('room')
+      }
+
+      if (!payment) {
+        console.error('[BKT fail return] payment not found for oid', { oid })
+      } else {
+        try {
+          // Update provider-related fields conservatively
+          payment.provider = payment.provider || 'BKT'
+          payment.providerResult = payload?.Response || payload?.response || payment.providerResult
+          payment.providerCode = payload?.ErrorCode || payload?.ProcReturnCode || payment.providerCode
+          payment.providerMessage = payload?.mdErrorMsg || payload?.ErrMsg || payload?.Response || payment.providerMessage
+          payment.providerTransactionId = payload?.traceId || payload?.trace_id || payment.providerTransactionId
+          payment.rawResponse = payload
+
+          // Mark as failed (do not mark booking as paid)
+          payment.status = 'failed'
+          payment.lastNotificationStatus = 'failed'
+          payment.lastNotificationReason = payment.providerMessage
+
+          await payment.save()
+
+          if (booking) {
+            booking.paymentStatus = 'failed'
+            try { await booking.save() } catch (e) { console.error('[BKT fail return] failed to save booking.paymentStatus', e && e.message ? e.message : e) }
+          } else {
+            console.error('[BKT fail return] booking not found for payment', { paymentId: String(payment._id), oid })
+          }
+
+          // Trigger non-blocking notification for failed/declined payment (idempotent)
+          setImmediate(async () => {
+            try {
+              const notificationService = require('../services/notificationService')
+              const reason = payload?.mdErrorMsg || payload?.ErrMsg || payload?.Response || 'Payment declined'
+              console.log('[Payment Notification] started', { provider: 'bkt', status: 'failed', orderId: oid, bookingId: booking?._id ? String(booking._id) : null, paymentId: String(payment._id), amount: payload?.amount, reason })
+
+              const resn = await notificationService.handlePaymentResultNotification({
+                provider: 'bkt',
+                status: 'failed',
+                bookingId: booking?._id ? String(booking._id) : null,
+                paymentId: String(payment._id),
+                orderId: oid,
+                amount: payload?.amount,
+                reason,
+                providerCode: payload?.ErrorCode || payload?.ProcReturnCode,
+                providerMessage: payload?.mdErrorMsg || payload?.ErrMsg || payload?.Response,
+                transactionId: payload?.traceId || payload?.trace_id || null,
+                rawPayload: payload
+              })
+
+              if (resn && resn.ok) {
+                if (resn.actions) {
+                  // if notificationService marked sentAt fields, log accordingly
+                  console.log('[Payment Notification] completed', { bookingId: booking?._id ? String(booking._id) : null, paymentId: String(payment._id), actions: resn.actions })
+                } else {
+                  console.log('[Payment Notification] completed', { bookingId: booking?._id ? String(booking._id) : null, paymentId: String(payment._id), result: resn })
+                }
+              } else {
+                console.log('[Payment Notification] completed with errors', { bookingId: booking?._id ? String(booking._id) : null, paymentId: String(payment._id), result: resn })
+              }
+            } catch (e) {
+              console.error('[Payment Notification] error', e && e.message ? e.message : e)
+            }
+          })
+        } catch (e) {
+          console.error('[BKT fail return] error updating payment/booking', e && e.message ? e.message : e)
+        }
       }
     }
 
