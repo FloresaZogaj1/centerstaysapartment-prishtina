@@ -74,22 +74,81 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
       if (provider === 'bkt') {
         try {
           const bktRes = await createBktPayment(booking._id)
-          if (bktRes && bktRes.form && bktRes.form.action && bktRes.form.fields) {
-            const form = { action: bktRes.form.action, method: bktRes.form.method || 'POST', fields: bktRes.form.fields }
+
+          // Safe debug log of returned shape (do not log sensitive values)
+          try {
+            console.log('[BKT Frontend] create response', {
+              hasRedirectUrl: !!bktRes.redirectUrl,
+              redirectUrl: bktRes.redirectUrl,
+              hasHtmlForm: !!bktRes.htmlForm,
+              hasForm: !!(bktRes.form || (bktRes.form && (bktRes.form.action || bktRes.form.fields))),
+              hasAction: !!(bktRes.action || bktRes.form?.action || bktRes.form?.Action),
+              fieldKeys: bktRes.form && bktRes.form.fields ? Object.keys(bktRes.form.fields) : (bktRes.fields ? Object.keys(bktRes.fields) : [])
+            })
+          } catch (e) {}
+
+          // 1) If backend returned raw html string for the form (htmlForm)
+          if (bktRes && bktRes.htmlForm) {
+            setMessage('Redirecting to secure BKT payment page...')
+            try {
+              const container = document.createElement('div')
+              container.style.display = 'none'
+              container.innerHTML = bktRes.htmlForm
+              document.body.appendChild(container)
+              const form = container.querySelector('form')
+              if (!form) {
+                console.error('[BKT Frontend] htmlForm returned but no form found')
+                throw new Error('BKT payment form missing')
+              }
+              console.log('[BKT Frontend] submitting BKT htmlForm', { action: form.action, method: form.method })
+              form.submit()
+              return
+            } catch (e) {
+              console.error('[BKT Frontend] htmlForm submit failed', e)
+              setMessage('Payment page could not be opened. Please try again.')
+              return
+            }
+          }
+
+          // 2) If backend returned structured form under bktRes.form
+          const formObj = bktRes && bktRes.form ? bktRes.form : null
+          if (formObj && formObj.action && formObj.fields) {
+            const form = { action: formObj.action, method: formObj.method || 'POST', fields: formObj.fields }
+            setMessage('Redirecting to secure BKT payment page...')
             const shouldAutoSubmit = import.meta.env.VITE_AUTO_SUBMIT_PAYMENT === 'true'
             if (shouldAutoSubmit) {
               submitPaymentForm(form)
-              setMessage('Booking saved. Redirecting to bank for payment...')
               return
             }
             setPendingPaymentForm(form)
             setMessage('Booking saved. Payment form is ready.')
             return
           }
-          // If BKT didn't return form data, fallthrough to error handler
+
+          // 3) Backwards-compatible: top-level action + fields
+          if ((bktRes && (bktRes.action || bktRes.formAction || bktRes.form?.action || bktRes.actionUrl)) && (bktRes.fields || bktRes.form?.fields)) {
+            const action = bktRes.formAction || bktRes.action || bktRes.actionUrl || (bktRes.form && bktRes.form.action)
+            const fields = bktRes.fields || (bktRes.form && bktRes.form.fields)
+            const form = { action, method: (bktRes.method || (bktRes.form && bktRes.form.method) || 'POST'), fields }
+            setMessage('Redirecting to secure BKT payment page...')
+            submitPaymentForm(form)
+            return
+          }
+
+          // 4) If server returned a redirectUrl only (no POST fields)
+          if (bktRes && bktRes.redirectUrl) {
+            setMessage('Redirecting to secure BKT payment page...')
+            window.location.href = bktRes.redirectUrl
+            return
+          }
+
+          // If no usable payload found, show safe message but do NOT route to fail page
+          console.error('[BKT Frontend] createBktPayment returned unusable payload', bktRes)
+          setMessage('Booking saved. Payment page could not be opened. Please try again or choose another provider.')
+          return
         } catch (err) {
-          console.error('BKT payment creation failed:', err)
-          setMessage('Booking saved. BKT payment creation failed.')
+          console.error('[BKT Frontend] payment start failed', err)
+          setMessage('Payment page could not be opened. Please try again.')
         }
       } else if (provider === 'nlb_bankart') {
         try {
