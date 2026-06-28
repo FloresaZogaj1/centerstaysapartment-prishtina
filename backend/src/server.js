@@ -77,4 +77,6 @@ app.listen(PORT, () => {
 	try { console.log(`Server listening on ${PORT}`) } catch (e) {}
 	// Boot marker for verifying deployed instances contain BKT logging changes
 	try { console.log('[BOOT] BKT provider-values logging version active') } catch (e) {}
+	// Boot marker for Bankart immediate-OK/refund-safe callback version
+	try { console.log('[BOOT] Bankart callback immediate-OK refund-safe version active') } catch (e) {}
 })
