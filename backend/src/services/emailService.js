@@ -145,16 +145,42 @@ async function sendBookingPaidAdminEmail(booking, payment){
   return !!result
 }
 
-async function sendBookingFailedCustomerEmail(booking){
+async function sendBookingFailedCustomerEmail(booking, payment){
   if (!booking || !booking.email) return false
   if (!isEmailConfigured()) {
     console.log('Email not sent: SMTP configuration missing')
     return false
   }
   const to = booking.email
-  const subject = 'Payment failed - Center Stays Apartments'
-  const text = `Booking number: ${booking.bookingNumber} - Your payment was not completed. Please try again or contact us.`
-  const html = `<p>${text}</p>`
+  const subject = 'Payment was not completed - Center Stays Apartments'
+
+  const providerResp = payment && payment.rawResponse ? payment.rawResponse : {}
+  const safeResp = {
+    ErrorCode: providerResp.ErrorCode || providerResp.ErrorCode || '',
+    ErrMsg: providerResp.ErrMsg || providerResp.Errmsg || providerResp.ErrMsg || '',
+    ProcReturnCode: providerResp.ProcReturnCode || '',
+    Response: providerResp.Response || providerResp.response || ''
+  }
+
+  const text = `Dear ${booking.firstName || ''},\n\nYour payment attempt for booking ${booking.bookingNumber || ''} was not completed.\n\nAmount attempted: ${safeNumber(booking.pricing?.totalAmount)} ${booking.pricing?.currency || 'EUR'}\nProvider: BKT\nStatus: Failed / Declined\nReason: ${safeResp.ErrorCode} - ${safeResp.ErrMsg} (ProcReturnCode: ${safeResp.ProcReturnCode}, Response: ${safeResp.Response})\n\nYour booking is not confirmed as paid. You may try again with another card or contact us for assistance.\n\nBest regards,\nCenter Stays Apartments`
+
+  const html = `
+    <p>Dear ${booking.firstName || ''},</p>
+    <p>Your payment attempt for booking <strong>${booking.bookingNumber || ''}</strong> was not completed.</p>
+    <table>
+      <tr><td><strong>Apartment</strong></td><td>${(booking.room && booking.room.name) || booking.roomName || 'N/A'}</td></tr>
+      <tr><td><strong>Check-in</strong></td><td>${formatDate(booking.checkInDate)}</td></tr>
+      <tr><td><strong>Check-out</strong></td><td>${formatDate(booking.checkOutDate)}</td></tr>
+      <tr><td><strong>Guests</strong></td><td>${booking.guests || ''}</td></tr>
+      <tr><td><strong>Attempted amount</strong></td><td>${safeNumber(booking.pricing?.totalAmount)} ${booking.pricing?.currency || 'EUR'}</td></tr>
+      <tr><td><strong>Provider</strong></td><td>BKT</td></tr>
+      <tr><td><strong>Status</strong></td><td>Failed / Declined</td></tr>
+      <tr><td><strong>Reason</strong></td><td>ErrorCode: ${safeResp.ErrorCode}<br/>ErrMsg: ${safeResp.ErrMsg}<br/>ProcReturnCode: ${safeResp.ProcReturnCode}<br/>Response: ${safeResp.Response}</td></tr>
+    </table>
+    <p>Your booking is not confirmed as paid. You may try again with another card or contact us for assistance.</p>
+    <p>Best regards,<br/>Center Stays Apartments</p>
+  `
+
   const result = await sendMail({ from: process.env.EMAIL_FROM, to, subject, text, html })
   return !!result
 }
@@ -182,7 +208,13 @@ async function sendBookingFailedAdminEmail(booking, payment){
     Response: resp.Response || resp.response || '',
     ProcReturnCode: resp.ProcReturnCode || '',
     mdStatus: resp.mdStatus || '',
-    ErrMsg: resp.ErrMsg || ''
+    ErrMsg: resp.ErrMsg || resp.Errmsg || ''
+  }
+
+  // Additional useful provider fields if available
+  const extra = {
+    ErrorCode: resp.ErrorCode || '',
+    traceId: resp.traceId || resp.trace_id || ''
   }
 
   const html = `
@@ -203,7 +235,7 @@ async function sendBookingFailedAdminEmail(booking, payment){
       <tr><td><strong>Total amount</strong></td><td>${safeNumber(booking.pricing?.totalAmount)} EUR</td></tr>
       <tr><td><strong>Payment provider</strong></td><td>${payment.provider}</td></tr>
       <tr><td><strong>Payment ID</strong></td><td>${payment._id}</td></tr>
-      <tr><td><strong>Failure Response</strong></td><td>Response: ${safeResp.Response}<br/>ProcReturnCode: ${safeResp.ProcReturnCode}<br/>mdStatus: ${safeResp.mdStatus}<br/>ErrMsg: ${safeResp.ErrMsg}</td></tr>
+  <tr><td><strong>Failure Response</strong></td><td>Response: ${safeResp.Response}<br/>ProcReturnCode: ${safeResp.ProcReturnCode}<br/>mdStatus: ${safeResp.mdStatus}<br/>ErrMsg: ${safeResp.ErrMsg}<br/>ErrorCode: ${extra.ErrorCode}<br/>traceId: ${extra.traceId}</td></tr>
     </table>
   `
 
