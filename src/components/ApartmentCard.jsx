@@ -4,18 +4,25 @@ export default function ApartmentCard({ room, images = [], onOpenGallery = () =>
   // fallback image choices
   const instagramFallback = '/Instagram_files/473136151_18033560417428513_1733372448230331900_n.jpg'
   const safeFallback = '/foto1.avif'
-  const initialSrc = (images && images[0]) || room.image || instagramFallback
-  const [src, setSrc] = useState(initialSrc)
+
+  // Determine main image in order of preference:
+  // 1. room.image (mapped in Rooms.jsx from backend imageUrl)
+  // 2. room.raw.imageUrl (direct API field)
+  // 3. first image from room.raw.gallery
+  // 4. images prop (legacy group mapping)
+  // 5. safe fallback
+  const mainImage = room.image || (room.raw && room.raw.imageUrl) || (room.raw && room.raw.gallery && room.raw.gallery[0]) || (images && images[0]) || instagramFallback
+  const [src, setSrc] = useState(mainImage)
 
   useEffect(() => {
     const img = new Image()
-    img.onload = () => setSrc(initialSrc)
-    img.onerror = () => setSrc(room.image || safeFallback)
-    img.src = initialSrc
-  }, [initialSrc, room.image])
+    img.onload = () => setSrc(mainImage)
+    img.onerror = () => setSrc(room.image || (room.raw && room.raw.imageUrl) || safeFallback)
+    img.src = mainImage
+  }, [mainImage, room.image, room.raw])
 
   function handleImageError(e) {
-    e.currentTarget.src = room.image || safeFallback
+    e.currentTarget.src = room.image || (room.raw && room.raw.imageUrl) || safeFallback
   }
 
   function handleOpenGallery() {
@@ -33,11 +40,11 @@ export default function ApartmentCard({ room, images = [], onOpenGallery = () =>
           <img src={src} alt={room.name} onError={handleImageError} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 rounded-t-xl" />
         </button>
 
-        {images && images.length > 1 && (
+        {(room.raw && room.raw.gallery && room.raw.gallery.length > 0) || (images && images.length > 1) ? (
           <button onClick={handleOpenGallery} className="absolute left-3 bottom-3 bg-white/90 text-sm text-charcoal rounded-full px-3 py-1 shadow">
-            {images.length} imazhe
+            { (room.raw && room.raw.gallery && room.raw.gallery.length) || (images && images.length) } imazhe
           </button>
-        )}
+        ) : null}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
       </div>
