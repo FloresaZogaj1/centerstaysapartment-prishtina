@@ -7,6 +7,9 @@ try {
   console.log('[BOOT] BKT provider-values logging version active')
 } catch (e) {}
 
+// Explicit Bankart callback boot marker
+try { console.log('[BOOT] Bankart callback immediate-OK refund-safe version active') } catch (e) {}
+
 const createBankartPayment = async (req, res) => {
   try {
     const { bookingId } = req.body
@@ -159,218 +162,181 @@ module.exports = {
 }
 
 // Bankart callback/webhook handler - improved logging, verification, mapping and persistence
-const bankartCallback = async (req, res) => {
-  // Minimal, non-blocking pre-response handling: parse payload and respond OK immediately
+// Move all async processing into processBankartCallbackAsync so the HTTP response is immediate.
+async function processBankartCallbackAsync (payload = {}, headers = {}, rawBody = null, requestPath = '/', method = 'POST') {
+  console.log('[Bankart Callback][async] started')
   try {
-    const payload = req.body || {}
-
-    // sanitized summary (avoid sensitive fields)
-    const sanitized = {
-      merchantTransactionId: payload.merchantTransactionId || payload.merchantOrderId || payload.orderId || payload.merchantOrder || null,
-      uuid: payload.uuid || null,
-      purchaseId: payload.purchaseId || null,
-      result: payload.result || payload.status || null,
-      code: payload.code || null,
-      message: payload.message || null,
-      transactionType: payload.transactionType || null,
-      amount: payload.amount || null,
-      currency: payload.currency || null,
+    // perform signature verification
+    let verification = null
+    try {
+      verification = bankartService.verifyBankartCallback(headers || {}, payload, rawBody, requestPath, method)
+    } catch (e) {
+      console.error('[Bankart Callback][async] signature verification threw error', e && e.message ? e.message : e)
     }
 
-    console.log('[Bankart Callback] received safe summary', {
-      provider: 'bankart',
-      transactionType: sanitized.transactionType,
-      result: sanitized.result,
-      code: sanitized.code,
-      message: sanitized.message,
-      uuid: sanitized.uuid,
-      purchaseId: sanitized.purchaseId,
-      merchantTransactionId: sanitized.merchantTransactionId,
-      amount: sanitized.amount,
-      currency: sanitized.currency,
-    })
+    const verified = !!(verification && verification.valid)
+    console.log('[Bankart Callback][async] signature verification result', { verifiedSignature: verified, reason: verification && verification.reason ? String(verification.reason).slice(0,200) : undefined })
 
-    // Boot marker for verification in Render logs
-    try { console.log('[BOOT] Bankart callback immediate-OK refund-safe version active') } catch (e) {}
+    if (!verified) {
+      console.error('[Bankart Callback][async] invalid signature; aborting processing')
+      return
+    }
 
-    // Immediately respond OK so provider does not retry or time out
-    res.set('Content-Type', 'text/plain')
-    res.status(200).send('OK')
-    try { console.log('[Bankart Callback] responded 200 OK immediately') } catch (e) {}
+    // Map provider status to normalized internal status
+    const providerResult = (payload.result || payload.status || '').toString()
+    const normalized = bankartService.mapBankartStatus(providerResult)
+    console.log('[Bankart Callback][async] mapped status', { providerResult, normalized })
 
-    // Process everything asynchronously. Any errors here must not affect the response.
+    // Normalize and validate merchantTransactionId for lookups
+    const rawMerchantTransactionId = payload.merchantTransactionId || payload.merchantOrderId || payload.orderId || payload.merchantOrder || null
+    const isRefund = (payload.transactionType && String(payload.transactionType).toUpperCase() === 'REFUND')
+
+    let lookupPaymentId = rawMerchantTransactionId
+    if (isRefund && typeof lookupPaymentId === 'string') {
+      lookupPaymentId = lookupPaymentId.replace(/^refund\d*-/, '')
+    }
+
+    console.log('[Bankart Callback][async] normalized merchantTransactionId', { transactionType: payload.transactionType, rawMerchantTransactionId, lookupPaymentId })
+
+    const mongoose = require('mongoose')
+    if (!lookupPaymentId || !mongoose.Types.ObjectId.isValid(lookupPaymentId)) {
+      console.error('[Bankart Callback][async] invalid normalized payment id', { rawMerchantTransactionId, lookupPaymentId })
+      return
+    }
+
+    // Load payment safely
+    let payment = null
+    try {
+      payment = await Payment.findById(lookupPaymentId)
+    } catch (e) {
+      console.error('[Bankart Callback][async] error finding payment by id', { lookupPaymentId, err: e && e.message ? e.message : e })
+      return
+    }
+
+    if (!payment) {
+      console.log('[Bankart Callback][async] payment not found for id', lookupPaymentId)
+      return
+    }
+
+    // Persist provider fields for audit (safe, idempotent)
+    try {
+      payment.providerTransactionId = payment.providerTransactionId || payload.uuid || payment.providerTransactionId
+      payment.providerUuid = payment.providerUuid || payload.uuid || payment.providerUuid
+      payment.providerResult = providerResult || payment.providerResult
+      payment.providerCode = payload.code || payment.providerCode
+      payment.providerMessage = payload.message || payment.providerMessage
+      payment.callbackReceivedAt = payment.callbackReceivedAt || new Date()
+      payment.verifiedSignature = true
+      payment.rawResponse = payment.rawResponse || payload
+
+      if (isRefund) {
+        const incomingRefundTxId = payload.uuid || null
+        if (incomingRefundTxId && payment.refundTransactionId && payment.refundTransactionId === incomingRefundTxId && payment.status === 'refunded') {
+          console.log('[Bankart Callback] duplicate refund callback ignored safely', { paymentId: String(payment._id), refundTransactionId: incomingRefundTxId })
+        } else {
+          if (providerResult && ['OK', 'SUCCESS', 'APPROVED'].includes(providerResult.toUpperCase())) {
+            payment.status = 'refunded'
+            payment.refundStatus = 'refunded'
+            payment.refundedAt = new Date()
+            payment.refundAmount = payload.amount || payment.refundAmount
+            payment.refundTransactionId = incomingRefundTxId || payment.refundTransactionId
+            payment.refundMerchantTransactionId = rawMerchantTransactionId || payment.refundMerchantTransactionId
+            payment.refundProviderResult = providerResult || payment.refundProviderResult
+          } else {
+            payment.refundStatus = 'failed'
+            payment.refundProviderResult = providerResult || payment.refundProviderResult
+          }
+        }
+      } else {
+        payment.status = normalized || payment.status
+      }
+
+      payment.updatedAt = new Date()
+      await payment.save()
+      console.log('[Bankart Callback][async] payment update complete', { paymentId: String(payment._id), status: payment.status })
+    } catch (e) {
+      console.error('[Bankart Callback][async] error saving payment', e && e.message ? e.message : e)
+    }
+
+    // Update booking paymentStatus if linked (do NOT change booking.status)
+    if (payment.booking) {
+      try {
+        const booking = await Booking.findById(payment.booking)
+        if (booking) {
+          if (isRefund) {
+            booking.paymentStatus = 'refunded'
+          } else {
+            booking.paymentStatus = normalized || booking.paymentStatus
+          }
+          await booking.save()
+          console.log('[Bankart Callback][async] booking update complete', { bookingId: String(booking._id), bookingPaymentStatus: booking.paymentStatus })
+        }
+      } catch (e) {
+        console.error('[Bankart Callback][async] error updating booking status', e && e.message ? e.message : e)
+      }
+    }
+
+    // Run notifications asynchronously but ensure errors are caught
     setImmediate(async () => {
       try {
-        // perform signature verification inside async handler
-        const rawBody = req.rawBody || null
-        const requestPath = req.originalUrl || req.url || req.path || '/'
-        const method = req.method || 'POST'
-        let verification = null
-        try {
-          verification = bankartService.verifyBankartCallback(req.headers || {}, payload, rawBody, requestPath, method)
-        } catch (e) {
-          console.error('[Bankart Callback][async] signature verification threw error', e && e.message ? e.message : e)
-        }
-
-        const verified = !!(verification && verification.valid)
-        console.log('[Bankart Callback][async] signature verification result', { verifiedSignature: verified, reason: verification && verification.reason ? String(verification.reason).slice(0,200) : undefined })
-
-        if (!verified) {
-          console.error('[Bankart Callback][async] invalid signature; aborting processing')
-          return
-        }
-
-        // Map provider status to normalized internal status
-        const providerResult = (payload.result || payload.status || '').toString()
-        const normalized = bankartService.mapBankartStatus(providerResult)
-
-        // Normalize and validate merchantTransactionId for lookups
-        const rawMerchantTransactionId = payload.merchantTransactionId || payload.merchantOrderId || payload.orderId || payload.merchantOrder || null
-        const isRefund = (payload.transactionType && String(payload.transactionType).toUpperCase() === 'REFUND')
-
-        let lookupPaymentId = rawMerchantTransactionId
-        if (isRefund && typeof lookupPaymentId === 'string') {
-          lookupPaymentId = lookupPaymentId.replace(/^refund\d*-/, '')
-        }
-
-        console.log('[Bankart Callback][async] normalized merchantTransactionId', { transactionType: payload.transactionType, rawMerchantTransactionId, lookupPaymentId })
-
-        const mongoose = require('mongoose')
-        if (!lookupPaymentId || !mongoose.Types.ObjectId.isValid(lookupPaymentId)) {
-          console.error('[Bankart Callback][async] invalid normalized payment id', { rawMerchantTransactionId, lookupPaymentId })
-          return
-        }
-
-        // Load payment safely
-        let payment = null
-        try {
-          payment = await Payment.findById(lookupPaymentId)
-        } catch (e) {
-          console.error('[Bankart Callback][async] error finding payment by id', { lookupPaymentId, err: e && e.message ? e.message : e })
-          return
-        }
-
-        if (!payment) {
-          console.log('[Bankart Callback][async] payment not found for id', lookupPaymentId)
-          return
-        }
-
-        // Persist provider fields for audit (safe, idempotent)
-        try {
-          payment.providerTransactionId = payment.providerTransactionId || payload.uuid || payment.providerTransactionId
-          payment.providerUuid = payment.providerUuid || payload.uuid || payment.providerUuid
-          payment.providerResult = providerResult || payment.providerResult
-          payment.providerCode = payload.code || payment.providerCode
-          payment.providerMessage = payload.message || payment.providerMessage
-          payment.callbackReceivedAt = payment.callbackReceivedAt || new Date()
-          payment.verifiedSignature = true
-          payment.rawResponse = payment.rawResponse || payload
-
-          if (isRefund) {
-            // Idempotent refund handling
-            const incomingRefundTxId = payload.uuid || null
-            // If this refund was already recorded, ignore
-            if (incomingRefundTxId && payment.refundTransactionId && payment.refundTransactionId === incomingRefundTxId && payment.status === 'refunded') {
-              console.log('[Bankart Callback] duplicate refund callback ignored safely', { paymentId: String(payment._id), refundTransactionId: incomingRefundTxId })
-            } else {
-              if (providerResult && ['OK', 'SUCCESS', 'APPROVED'].includes(providerResult.toUpperCase())) {
-                payment.status = 'refunded'
-                payment.refundStatus = 'refunded'
-                payment.refundedAt = new Date()
-                payment.refundAmount = payload.amount || payment.refundAmount
-                payment.refundTransactionId = incomingRefundTxId || payment.refundTransactionId
-                payment.refundMerchantTransactionId = rawMerchantTransactionId || payment.refundMerchantTransactionId
-                payment.refundProviderResult = providerResult || payment.refundProviderResult
-              } else {
-                payment.refundStatus = 'failed'
-                payment.refundProviderResult = providerResult || payment.refundProviderResult
-              }
-            }
-          } else {
-            // DEBIT flows: map to paid/failed/pending etc.
-            payment.status = normalized || payment.status
-          }
-
-          payment.updatedAt = new Date()
-          await payment.save()
-        } catch (e) {
-          console.error('[Bankart Callback][async] error saving payment', e && e.message ? e.message : e)
-        }
-
-        // Update booking paymentStatus if linked (do NOT change booking.status)
-        if (payment.booking) {
+        if (payment.status === 'paid' && payment.booking) {
           try {
-            const booking = await Booking.findById(payment.booking)
-            if (booking) {
-              if (isRefund) {
-                booking.paymentStatus = 'refunded'
-              } else {
-                booking.paymentStatus = normalized || booking.paymentStatus
-              }
-              await booking.save()
-
-              if (isRefund) {
-                console.log('[Bankart Callback] refund persistence complete', {
-                  paymentId: String(payment._id),
-                  bookingId: String(booking._id),
-                  paymentStatus: payment.status,
-                  bookingPaymentStatus: booking.paymentStatus,
-                  refundTransactionId: payment.refundTransactionId
-                })
-              }
-            }
+            const notificationService = require('../services/notificationService')
+            await notificationService.handlePaymentResultNotification({ paymentId: String(payment._id), bookingId: String(payment.booking), status: 'paid' })
           } catch (e) {
-            console.error('[Bankart Callback][async] error updating booking status', e && e.message ? e.message : e)
+            console.error('[Bankart Callback][async] notificationService error (paid):', e && e.message ? e.message : e)
+          }
+        } else if (payment.status === 'refunded' && payment.booking) {
+          try {
+            const notificationService = require('../services/notificationService')
+            await notificationService.handlePaymentResultNotification({ paymentId: String(payment._id), bookingId: String(payment.booking), status: 'refunded' })
+          } catch (e) {
+            console.error('[Bankart Callback][async] notificationService error (refunded):', e && e.message ? e.message : e)
           }
         }
+      } catch (e) {
+        console.error('[Bankart Callback][async] unexpected error in post-processing:', e && e.message ? e.message : e)
+      }
+    })
 
-        // Final mapping log
-        try {
-          console.log('[Bankart Callback] final mapping', {
-            provider: 'bankart',
-            transactionType: payload.transactionType,
-            providerResult,
-            mappedStatus: payment.status,
-            paymentId: String(payment._id),
-            bookingId: payment.booking ? String(payment.booking) : null,
-            merchantTransactionId: rawMerchantTransactionId,
-            verifiedSignature: !!payment.verifiedSignature
-          })
-        } catch (e) {}
+    console.log('[Bankart Callback][async] completed')
+  } catch (err) {
+    console.error('[Bankart Callback][async] processing failed after 200 OK', err && err.message ? err.message : err)
+  }
+}
 
-        // Run invoice generation and email notifications asynchronously but errors must be caught
-        setImmediate(async () => {
-          try {
-            if (payment.status === 'paid' && payment.booking) {
-              try {
-                const booking = await Booking.findById(payment.booking)
-                if (booking) {
-                  const invoiceService = require('../services/invoiceService')
-                  try {
-                    const inv = await invoiceService.generateAndSendInvoice(booking, payment)
-                    if (!inv || !inv.ok) console.log('[Bankart Callback][async] invoice generation/send result:', inv)
-                  } catch (e) { console.error('[Bankart Callback][async] invoice service error:', e && e.message ? e.message : e) }
+// Minimal, non-blocking bankart callback that responds OK immediately and delegates processing
+const bankartCallback = async (req, res) => {
+  try {
+    const payload = req.body || {}
+    const headers = req.headers || {}
+    const rawBody = req.rawBody || null
+    const requestPath = req.originalUrl || req.url || req.path || '/'
+    const method = req.method || 'POST'
 
-                  try { const ok = await require('../services/emailService').sendBookingPaidCustomerEmail(booking); if (!ok) console.log('[Bankart Callback][async] customer paid email not sent') } catch (e) { console.error('[Bankart Callback][async] Email send error (customer paid):', e && e.message ? e.message : e) }
-                  try { const ok2 = await require('../services/emailService').sendBookingPaidAdminEmail(booking, payment); if (!ok2) console.log('[Bankart Callback][async] admin paid email not sent') } catch (e) { console.error('[Bankart Callback][async] Admin paid email failed', e && e.message ? e.message : e) }
-                }
-              } catch (e) {
-                console.error('[Bankart Callback][async] error during invoice/email flow:', e && e.message ? e.message : e)
-              }
-            }
-          } catch (e) {
-            console.error('[Bankart Callback][async] unexpected error in post-processing:', e && e.message ? e.message : e)
-          }
-        })
+    console.log('[Bankart Callback] received', {
+      transactionType: payload.transactionType,
+      result: payload.result,
+      merchantTransactionId: payload.merchantTransactionId,
+      purchaseId: payload.purchaseId,
+      uuid: payload.uuid
+    })
 
+    // Immediately respond OK so provider does not retry or time out
+    try { res.status(200).type('text/plain').send('OK') } catch (e) { try { if (!res.headersSent) { res.set('Content-Type','text/plain'); res.status(200).send('OK') } } catch (e2) {} }
+    try { console.log('[Bankart Callback] responded 200 OK immediately') } catch (e) {}
+
+    // Process in background without awaiting
+    setImmediate(async () => {
+      try {
+        await processBankartCallbackAsync(payload, headers, rawBody, requestPath, method)
       } catch (err) {
-        console.error('[Bankart Callback][async] unexpected processing error', err && err.message ? err.message : err)
+        console.error('[Bankart Callback][async] processing failed after 200 OK', { message: err && err.message ? err.message : err, stack: err && err.stack })
       }
     })
 
     return
   } catch (error) {
-    // Should never reach here; ensure not to change response
     console.error('[Bankart Callback] pre-response unexpected error', error && error.message ? error.message : error)
     try { if (!res.headersSent) { res.set('Content-Type', 'text/plain'); res.status(200).send('OK') } } catch (e) {}
     return
