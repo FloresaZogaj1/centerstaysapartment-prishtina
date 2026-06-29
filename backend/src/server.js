@@ -85,10 +85,35 @@ app.listen(PORT, () => {
 		const emailService = require('./services/emailService')
 		console.log('[BOOT] Notification service wiring active - emailConfigured=', emailService.isEmailConfigured())
 		console.log('[BOOT] Email config', {
-			smtpHostExists: !!process.env.SMTP_HOST,
-			smtpUserExists: !!process.env.SMTP_USER,
-			smtpPassExists: !!process.env.SMTP_PASS,
+			smtpHost: process.env.SMTP_HOST || process.env.EMAIL_HOST || null,
+			smtpPort: process.env.SMTP_PORT || process.env.EMAIL_PORT || null,
+			smtpSecure: process.env.SMTP_SECURE || process.env.EMAIL_SECURE || null,
+			smtpUserExists: !!(process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER),
+			smtpPassExists: !!(process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS),
 			adminEmailExists: !!process.env.ADMIN_EMAIL
 		})
+		// Safe Bankart / NLB config boot log (do NOT print secrets)
+		try {
+			console.log('[BOOT] Bankart config', {
+				mode: process.env.NLB_BANKART_MODE,
+				postUrlHost: process.env.NLB_BANKART_POST_URL ? (function () { try { return new URL(process.env.NLB_BANKART_POST_URL).host } catch (e) { return null } })() : null,
+				apiKeyExists: !!process.env.NLB_BANKART_API_KEY,
+				sharedSecretExists: !!process.env.NLB_BANKART_SHARED_SECRET,
+				publicIntegrationKeyExists: !!process.env.NLB_BANKART_PUBLIC_INTEGRATION_KEY,
+				callbackUrl: process.env.NLB_BANKART_CALLBACK_URL,
+				successUrl: process.env.NLB_BANKART_SUCCESS_URL,
+				failUrl: process.env.NLB_BANKART_FAIL_URL,
+				cancelUrl: process.env.NLB_BANKART_CANCEL_URL
+			})
+		} catch (e) {}
+		// Verify transporter without throwing
+		try {
+			if (emailService && emailService.verifyTransporter) {
+				emailService.verifyTransporter().then(v => {
+					if (v && v.ok) console.log('[BOOT] SMTP transporter verified')
+					else console.error('[BOOT] SMTP transporter verify failed', { message: v && v.error, code: v && v.code, command: v && v.command })
+				}).catch(err => console.error('[BOOT] SMTP transporter verify promise rejected', { message: err && err.message }))
+			}
+		} catch (e) { console.error('[BOOT] SMTP verify error', e && e.message ? e.message : e) }
 	} catch (e) {}
 })
