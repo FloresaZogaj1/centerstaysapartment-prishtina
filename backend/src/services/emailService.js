@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer')
 const dns = require('dns')
+const axios = require('axios')
 
 // Attempt to prefer IPv4 addresses when resolving hostnames. Some platforms
 // (like Render) may return IPv6 addresses that are not routable from the
@@ -17,6 +18,10 @@ const requiredEnv = ['SMTP_HOST','SMTP_PORT','SMTP_USER','SMTP_PASS','EMAIL_FROM
 
 function smtpConfigured() {
   return requiredEnv.every(k => !!process.env[k])
+}
+
+function brevoConfigured() {
+  return !!process.env.BREVO_API_KEY && !!process.env.EMAIL_FROM
 }
 
 function createTransporter(){
@@ -60,6 +65,11 @@ function createTransporter(){
 }
 
 async function sendMail(opts){
+  // If Brevo API key is present, use Brevo REST API instead of SMTP
+  if (brevoConfigured()) {
+    return sendEmailWithBrevoApi({ to: opts && opts.to, subject: opts && opts.subject, html: opts && opts.html, text: opts && opts.text })
+  }
+
   const transporter = createTransporter()
   if (!transporter) {
     console.log('Email not sent: SMTP configuration missing')
@@ -123,6 +133,42 @@ async function verifyTransporter(){
   }
 }
 
+async function sendEmailWithBrevoApi({ to, subject, html, text }){
+  try {
+    const payload = {
+      sender: {
+        email: process.env.EMAIL_FROM,
+        name: 'CenterStays Apartments'
+      },
+      to: [{ email: to }],
+      subject: subject,
+      htmlContent: html || text || '',
+      textContent: text || ''
+    }
+
+    const resp = await axios.post('https://api.brevo.com/v3/smtp/email', payload, {
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      timeout: 15000
+    })
+
+    const data = resp && resp.data ? resp.data : {}
+    if (!resp || resp.status < 200 || resp.status >= 300) {
+      console.error('[Email][Brevo API] send failed', { to, subject, status: resp && resp.status, response: data })
+      return { ok: false, error: data && data.message ? data.message : `Brevo API failed with status ${resp && resp.status}`, status: resp && resp.status }
+    }
+
+    console.log('[Email][Brevo API] sent', { to, subject, messageId: data && data.messageId })
+    return { ok: true, messageId: data && data.messageId }
+  } catch (err) {
+    console.error('[Email][Brevo API] send error', { to, subject, message: err && err.message })
+    return { ok: false, error: err && err.message }
+  }
+}
+
 function isEmailConfigured(){
   return smtpConfigured()
 }
@@ -135,6 +181,13 @@ async function sendTestEmail(to){
   if (!isEmailConfigured()) {
     console.log('Email not sent: SMTP configuration missing')
     return false
+  }
+
+  // Use Brevo API if available
+  if (brevoConfigured()) {
+    const r = await sendEmailWithBrevoApi({ to, subject: 'City Center Prishtina - SMTP test', text: 'SMTP email delivery is configured correctly.' })
+    if (r && r.ok) return true
+    throw new Error(r && r.error ? r.error : 'Brevo API send failed')
   }
 
   const transporter = createTransporter()
