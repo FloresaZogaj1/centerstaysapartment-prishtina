@@ -92,6 +92,16 @@ async function sendMail(opts){
 }
 
 async function verifyTransporter(){
+  // If Brevo API is configured, skip any SMTP verification entirely and
+  // report that the Brevo API provider will be used. This avoids network
+  // timeouts or SMTP checks on platforms that have restricted outbound
+  // SMTP (for example Render). Do NOT log the API key itself.
+  if (process.env.BREVO_API_KEY) {
+    console.log('[BOOT] Email provider: Brevo API')
+    console.log('[BOOT] Brevo API key exists:', true)
+    return { ok: true, provider: 'brevo-api' }
+  }
+
   const transporter = createTransporter()
   if (!transporter) {
     // Explicitly log missing configuration
@@ -135,6 +145,7 @@ async function verifyTransporter(){
 
 async function sendEmailWithBrevoApi({ to, subject, html, text }){
   try {
+    console.log('[Email][Brevo API] sending', { to, subject })
     const payload = {
       sender: {
         email: process.env.EMAIL_FROM,
@@ -164,7 +175,9 @@ async function sendEmailWithBrevoApi({ to, subject, html, text }){
     console.log('[Email][Brevo API] sent', { to, subject, messageId: data && data.messageId })
     return { ok: true, messageId: data && data.messageId }
   } catch (err) {
-    console.error('[Email][Brevo API] send error', { to, subject, message: err && err.message })
+    // Standardize on a "send failed" log label so it's easy to grep in
+    // platform logs.
+    console.error('[Email][Brevo API] send failed', { to, subject, message: err && err.message })
     return { ok: false, error: err && err.message }
   }
 }
@@ -178,8 +191,9 @@ async function sendTestEmail(to){
   // - false when SMTP missing
   // - true when sent
   // - throws when send fails
-  if (!isEmailConfigured()) {
-    console.log('Email not sent: SMTP configuration missing')
+  // Allow using Brevo API even when SMTP env vars are not present.
+  if (!isEmailConfigured() && !brevoConfigured()) {
+    console.log('Email not sent: SMTP configuration missing and Brevo API not configured')
     return false
   }
 
