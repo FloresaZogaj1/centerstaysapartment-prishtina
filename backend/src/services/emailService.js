@@ -8,11 +8,12 @@ function smtpConfigured() {
 
 function createTransporter(){
   if (!smtpConfigured()) return null
-  const secure = String(process.env.SMTP_SECURE || 'false') === 'true'
+  const secure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true'
   const host = process.env.SMTP_HOST || process.env.EMAIL_HOST || process.env.MAIL_HOST
   const port = process.env.SMTP_PORT || process.env.EMAIL_PORT || process.env.MAIL_PORT || 587
   const user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER
   const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS
+  // Force IPv4 (family: 4) and set tls.servername for SNI when using secure connections
   return nodemailer.createTransport({
     host: host,
     port: Number(port),
@@ -20,6 +21,10 @@ function createTransporter(){
     auth: {
       user: user,
       pass: pass
+    },
+    family: 4,
+    tls: {
+      servername: host
     },
     // explicit timeouts to fail fast and surface clear errors
     connectionTimeout: 10000,
