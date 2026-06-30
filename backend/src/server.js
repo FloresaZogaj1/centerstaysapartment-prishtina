@@ -84,12 +84,14 @@ app.listen(PORT, () => {
 	try {
 		const emailService = require('./services/emailService')
 		console.log('[BOOT] Notification service wiring active - emailConfigured=', emailService.isEmailConfigured())
+		// Email config: print only safe presence flags and non-secret port/mode
 		console.log('[BOOT] Email config', {
-			smtpHost: process.env.SMTP_HOST || process.env.EMAIL_HOST || null,
-			smtpPort: process.env.SMTP_PORT || process.env.EMAIL_PORT || null,
-			smtpSecure: process.env.SMTP_SECURE || process.env.EMAIL_SECURE || null,
+			smtpHostExists: !!(process.env.SMTP_HOST || process.env.EMAIL_HOST || process.env.MAIL_HOST),
+			smtpPort: String(process.env.SMTP_PORT || process.env.EMAIL_PORT || process.env.MAIL_PORT || ''),
+			smtpSecure: String(process.env.SMTP_SECURE || process.env.EMAIL_SECURE || 'false'),
 			smtpUserExists: !!(process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER),
 			smtpPassExists: !!(process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS),
+			mailFromExists: !!(process.env.EMAIL_FROM || process.env.MAIL_FROM),
 			adminEmailExists: !!process.env.ADMIN_EMAIL
 		})
 		// Safe Bankart / NLB config boot log (do NOT print secrets)
