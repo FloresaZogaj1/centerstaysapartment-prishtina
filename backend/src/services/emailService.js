@@ -1,4 +1,17 @@
 const nodemailer = require('nodemailer')
+const dns = require('dns')
+
+// Attempt to prefer IPv4 addresses when resolving hostnames. Some platforms
+// (like Render) may return IPv6 addresses that are not routable from the
+// runtime. Set the default result order to ipv4first when supported.
+try {
+  if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first')
+    console.log('[BOOT] DNS default result order set to ipv4first')
+  }
+} catch (err) {
+  console.error('[BOOT] Failed to set DNS ipv4first', { message: err && err.message })
+}
 
 const requiredEnv = ['SMTP_HOST','SMTP_PORT','SMTP_USER','SMTP_PASS','EMAIL_FROM']
 
@@ -14,7 +27,7 @@ function createTransporter(){
   const user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER
   const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS
   // Force IPv4 (family: 4) and set tls.servername for SNI when using secure connections
-  return nodemailer.createTransport({
+  const transporterOptions = {
     host: host,
     port: Number(port),
     secure: secure,
@@ -30,7 +43,20 @@ function createTransporter(){
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
-  })
+  }
+
+  // Safe diagnostic log for transporter options (no secrets)
+  try {
+    console.log('[BOOT] SMTP transporter options', {
+      host: transporterOptions.host,
+      port: transporterOptions.port,
+      secure: transporterOptions.secure,
+      family: transporterOptions.family,
+      tlsServername: transporterOptions.tls && transporterOptions.tls.servername
+    })
+  } catch (e) {}
+
+  return nodemailer.createTransport(transporterOptions)
 }
 
 async function sendMail(opts){
@@ -62,6 +88,24 @@ async function verifyTransporter(){
     console.error('[BOOT] SMTP transporter verify failed', { message: 'smtp_not_configured' })
     return { ok: false, reason: 'smtp_not_configured' }
   }
+  // Perform an explicit IPv4 DNS lookup diagnostic prior to verification
+  try {
+    const host = process.env.SMTP_HOST || process.env.EMAIL_HOST || process.env.MAIL_HOST
+    dns.lookup(host, { family: 4 }, (err, address, family) => {
+      if (err) {
+        console.error('[BOOT] SMTP IPv4 lookup failed', {
+          host,
+          message: err && err.message,
+          code: err && err.code
+        })
+      } else {
+        console.log('[BOOT] SMTP IPv4 lookup result', { host, address, family })
+      }
+    })
+  } catch (e) {
+    console.error('[BOOT] SMTP IPv4 lookup diagnostic failed', { message: e && e.message })
+  }
+
   try {
     await transporter.verify()
     console.log('[BOOT] SMTP transporter verified')
