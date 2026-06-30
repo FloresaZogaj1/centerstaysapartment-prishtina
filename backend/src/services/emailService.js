@@ -9,18 +9,22 @@ function smtpConfigured() {
 function createTransporter(){
   if (!smtpConfigured()) return null
   const secure = String(process.env.SMTP_SECURE || 'false') === 'true'
+  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST || process.env.MAIL_HOST
+  const port = process.env.SMTP_PORT || process.env.EMAIL_PORT || process.env.MAIL_PORT || 587
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS
   return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
+    host: host,
+    port: Number(port),
     secure: secure,
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
+      user: user,
+      pass: pass
     },
-    // timeouts to avoid silent connection close
-    connectionTimeout: 5000,
-    greetingTimeout: 5000,
-    socketTimeout: 5000,
+    // explicit timeouts to fail fast and surface clear errors
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   })
 }
 
@@ -28,14 +32,45 @@ async function sendMail(opts){
   const transporter = createTransporter()
   if (!transporter) {
     console.log('Email not sent: SMTP configuration missing')
-    return false
+    return { ok: false, error: 'smtp_not_configured' }
   }
   try {
     const info = await transporter.sendMail(opts)
-    return info
+    return { ok: true, messageId: info && info.messageId ? info.messageId : null, info }
   } catch (err) {
-    console.error('Email send failed', err && err.message ? err.message : err)
-    return false
+    // structured logging for operator diagnostics
+    console.error('[Email] send failed', {
+      to: opts && opts.to,
+      subject: opts && opts.subject,
+      message: err && err.message,
+      code: err && err.code,
+      command: err && err.command
+    })
+    return { ok: false, error: err && err.message ? err.message : String(err), code: err && err.code, command: err && err.command }
+  }
+}
+
+async function verifyTransporter(){
+  const transporter = createTransporter()
+  if (!transporter) {
+    // Explicitly log missing configuration
+    console.error('[BOOT] SMTP transporter verify failed', { message: 'smtp_not_configured' })
+    return { ok: false, reason: 'smtp_not_configured' }
+  }
+  try {
+    await transporter.verify()
+    console.log('[BOOT] SMTP transporter verified')
+    return { ok: true }
+  } catch (err) {
+    // Log a standardized failure object for Render
+    try {
+      console.error('[BOOT] SMTP transporter verify failed', {
+        message: err && err.message ? err.message : String(err),
+        code: err && err.code,
+        command: err && err.command
+      })
+    } catch (e) {}
+    return { ok: false, error: err && err.message ? err.message : String(err), code: err && err.code, command: err && err.command }
   }
 }
 
@@ -88,7 +123,9 @@ async function sendBookingPaidCustomerEmail(booking){
   const text = `Booking number: ${booking.bookingNumber} - Your payment was received and your booking is confirmed.`
   const html = `<p>${text}</p>`
   const result = await sendMail({ from: process.env.EMAIL_FROM, to, subject, text, html })
-  return !!result
+  if (result && result.ok) return true
+  console.error('[Email] booking paid customer send failed', { to, subject, error: result && result.error, code: result && result.code })
+  return false
 }
 
 async function sendBookingPaidAdminEmail(booking, payment){
@@ -142,7 +179,9 @@ async function sendBookingPaidAdminEmail(booking, payment){
   `
 
   const result = await sendMail({ from: process.env.EMAIL_FROM, to, subject, html })
-  return !!result
+  if (result && result.ok) return true
+  console.error('[Email] booking paid admin send failed', { to, subject, error: result && result.error, code: result && result.code })
+  return false
 }
 
 async function sendBookingFailedCustomerEmail(booking, payment){
@@ -182,7 +221,9 @@ async function sendBookingFailedCustomerEmail(booking, payment){
   `
 
   const result = await sendMail({ from: process.env.EMAIL_FROM, to, subject, text, html })
-  return !!result
+  if (result && result.ok) return true
+  console.error('[Email] booking failed customer send failed', { to, subject, error: result && result.error, code: result && result.code })
+  return false
 }
 
 async function sendBookingFailedAdminEmail(booking, payment){
@@ -240,7 +281,9 @@ async function sendBookingFailedAdminEmail(booking, payment){
   `
 
   const result = await sendMail({ from: process.env.EMAIL_FROM, to, subject, html })
-  return !!result
+  if (result && result.ok) return true
+  console.error('[Email] booking failed admin send failed', { to, subject, error: result && result.error, code: result && result.code })
+  return false
 }
 
 module.exports = {
@@ -251,5 +294,6 @@ module.exports = {
   // lower-level sendMail used by invoice service
   sendMail,
   isEmailConfigured,
-  sendTestEmail
+  sendTestEmail,
+  verifyTransporter
 }
