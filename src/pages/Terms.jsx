@@ -4,10 +4,8 @@ import { Link } from 'react-router-dom'
 export default function Terms() {
   return (
     <div className="max-w-4xl mx-auto py-16 px-4">
-      <div style={{background:'#f87171', color:'#fff', padding:'8px', borderRadius:6, marginBottom:12}}>TEST BANNER: Terms page rendered</div>
-      <div className="p-3 bg-yellow-100 text-red-800 font-bold">TERMS PAGE DEPLOY TEST 2026</div>
       <h1 className="text-3xl font-semibold">Terms & Conditions</h1>
-      <p className="text-sm text-gray-600 mt-2">Updated: 06 October 2025</p>
+  <p className="text-sm text-gray-600 mt-2">Updated: 20 June 2026</p>
 
       <div className="prose prose-lg mt-6">
         <h2>1. Reservation Policy</h2>

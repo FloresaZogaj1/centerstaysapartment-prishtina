@@ -4,9 +4,8 @@ import { Link } from 'react-router-dom'
 export default function Privacy() {
   return (
     <div className="max-w-4xl mx-auto py-16 px-4">
-      <div style={{background:'#60a5fa', color:'#fff', padding:'8px', borderRadius:6, marginBottom:12}}>TEST BANNER: Privacy page rendered</div>
       <h1 className="text-3xl font-semibold">Privacy & Cookies</h1>
-      <p className="text-sm text-gray-600 mt-2">Updated: 06 October 2025</p>
+  <p className="text-sm text-gray-600 mt-2">Updated: 20 June 2026</p>
 
       <div className="prose prose-lg mt-6">
         <h2>1. Who we are</h2>
