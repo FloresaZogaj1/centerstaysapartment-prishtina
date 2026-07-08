@@ -156,11 +156,10 @@ async function generateInvoicePdf(booking, payment) {
     drawLabelValue('Provider:', safeText(payment.provider), labelColX, infoBoxY + 96, labelWidth, valueWidth)
     doc.restore()
 
-  // Divider under header
+  // Header divider removed to avoid crossing the logo/business details
+  // (kept intentionally empty here — no replacement line)
   const headerBottomY = (typeof businessTextY !== 'undefined') ? businessTextY + 36 : (logoY + 36)
   y = headerBottomY
-    doc.moveTo(startX, y).lineTo(startX + pageWidth, y).strokeColor(BORDER).lineWidth(1).stroke()
-    y += 12
 
   // Bill To and Reservation Details side-by-side cards at requested Y ~165
   y = 165
