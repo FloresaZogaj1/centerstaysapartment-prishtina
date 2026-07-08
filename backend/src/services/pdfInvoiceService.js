@@ -34,15 +34,15 @@ async function generateInvoicePdf(booking, payment) {
     const filename = `invoice-${invoiceNumber}-${String(payment._id).slice(-6)}.pdf`
     const filepath = path.join(invoicesDir, filename)
 
-    // Create PDF document
-    const doc = new PDFDocument({ size: 'A4', margin: 40 })
+  // Create PDF document with margin 45 (A4 width ~595pt)
+  const doc = new PDFDocument({ size: 'A4', margin: 45 })
     const stream = fs.createWriteStream(filepath)
     doc.pipe(stream)
 
     // Styles & layout helpers
-    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right
-    const startX = doc.page.margins.left
-    let y = 40
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right // ~505 with margin 45
+    const startX = 45
+    let y = 35
 
     // Header with logo and clearer colors
     const MAIN_TEXT = '#111827'
@@ -51,6 +51,24 @@ async function generateInvoicePdf(booking, payment) {
     const BOX_BG_ALT = '#F3F4F6'
     const BORDER = '#D1D5DB'
     const ACCENT = '#C9A75D'
+
+    // Helper functions as requested
+    function formatDate(d) { return safeDate(d) }
+    function moneyFmt(n, c) { return `${money(n)} ${c || 'EUR'}` }
+    function drawLabelValue(label, value, x, yv, labelWidth, valueWidth) {
+      doc.font('Helvetica-Bold').fontSize(9).fillColor(MAIN_TEXT).text(label, x, yv, { width: labelWidth })
+      // value may need smaller font if too long
+      let fs = 9
+      doc.font('Helvetica').fontSize(fs)
+      const valWidth = doc.widthOfString(String(value || '-'))
+      if (valWidth > valueWidth) {
+        fs = 7
+        doc.font('Helvetica').fontSize(fs)
+      }
+      doc.fillColor(SECONDARY).text(String(value || '-'), x + labelWidth + 6, yv, { width: valueWidth })
+      // restore default font
+      doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
+    }
 
     const logoPaths = [
       path.resolve(__dirname, '..', 'assets', 'logo.png'),
@@ -63,42 +81,56 @@ async function generateInvoicePdf(booking, payment) {
       try { if (fs.existsSync(p)) { usedLogo = p; break } } catch (e) {}
     }
 
-    // Draw logo or business name
+    // Draw logo or business name at fixed header left
+    const headerLeftX = startX
+    const headerLeftY = 35
     if (usedLogo) {
-      try { doc.image(usedLogo, startX, 30, { width: 110 }) } catch (e) {
-        doc.font('Helvetica-Bold').fontSize(18).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', startX, 36)
+      try { doc.image(usedLogo, headerLeftX, headerLeftY, { width: 110 }) } catch (e) {
+        doc.font('Helvetica-Bold').fontSize(20).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', headerLeftX, headerLeftY)
       }
     } else {
-      doc.font('Helvetica-Bold').fontSize(18).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', startX, 36)
+      doc.font('Helvetica-Bold').fontSize(20).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', headerLeftX, headerLeftY)
     }
 
-    // Business info under logo
+    // Business info under logo with smaller font
     doc.font('Helvetica').fontSize(9).fillColor(SECONDARY)
-    const headerLeftY = 60
-    doc.text('Prishtina, Kosovo', startX, headerLeftY)
+    doc.text('Prishtina, Kosovo', headerLeftX, headerLeftY + 28)
     doc.text('+383 48 110 988')
     doc.text('centerstays@gmail.com')
     doc.text('centerstays.apartments')
 
-    // Right-side invoice box (visible border and bg)
-    const infoBoxWidth = 230
-    const infoX = doc.page.width - doc.page.margins.right - infoBoxWidth
-    const infoY = 30
+    // Right-side invoice box at fixed coordinates (per spec)
+    const infoBoxX = 390
+    const infoBoxY = 35
+  let infoBoxW = 160
+    const infoBoxH = 105
+    const labelColX = 405
+    const valueColX = 470
+    const labelWidth = valueColX - labelColX - 6
+    const valueWidth = infoBoxX + infoBoxW - valueColX - 6
+
+    // Ensure we don't draw past x=550
+    if (infoBoxX + infoBoxW > 550) infoBoxW = 550 - infoBoxX
+
     doc.save()
-    doc.rect(infoX, infoY, infoBoxWidth, 110).fillColor(BOX_BG).fill()
-    doc.rect(infoX, infoY, infoBoxWidth, 110).lineWidth(1).strokeColor(BORDER).stroke()
-    doc.fillColor(MAIN_TEXT).font('Helvetica-Bold').fontSize(14).text('INVOICE', infoX + 14, infoY + 8)
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT).text('Invoice No:', infoX + 14, infoY + 34)
-    doc.font('Helvetica').fontSize(10).fillColor(SECONDARY).text(safeText(invoiceNumber), infoX + 100, infoY + 34)
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT).text('Date:', infoX + 14, infoY + 50)
-    doc.font('Helvetica').fontSize(10).fillColor(SECONDARY).text(safeDate(payment.invoiceSentAt || payment.updatedAt || payment.createdAt), infoX + 100, infoY + 50)
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT).text('Status:', infoX + 14, infoY + 66)
-    // PAID badge
-    const paidBadgeX = infoX + 100
-    doc.rect(paidBadgeX, infoY + 62, 70, 18).fillColor(ACCENT).fill()
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#ffffff').text((payment.status || 'PAID').toString().toUpperCase(), paidBadgeX + 8, infoY + 64)
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT).text('Provider:', infoX + 14, infoY + 88)
-    doc.font('Helvetica').fontSize(10).fillColor(SECONDARY).text(safeText(payment.provider), infoX + 100, infoY + 88)
+    doc.rect(infoBoxX, infoBoxY, infoBoxW, infoBoxH).fillColor(BOX_BG).fill()
+    doc.rect(infoBoxX, infoBoxY, infoBoxW, infoBoxH).lineWidth(1).strokeColor(BORDER).stroke()
+    doc.font('Helvetica-Bold').fontSize(14).fillColor(MAIN_TEXT).text('INVOICE', infoBoxX + 8, infoBoxY + 8)
+
+    // Draw label/value pairs using helper
+    drawLabelValue('Invoice No:', safeText(invoiceNumber), labelColX, infoBoxY + 30, 60, valueWidth)
+    drawLabelValue('Date:', formatDate(payment.invoiceSentAt || payment.updatedAt || payment.createdAt), labelColX, infoBoxY + 48, 60, valueWidth)
+
+    // Status row with PAID badge on its own row
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(MAIN_TEXT).text('Status:', labelColX, infoBoxY + 66)
+    const badgeW = 56
+    const badgeH = 18
+    const badgeX = valueColX
+    const badgeY = infoBoxY + 64
+    doc.rect(badgeX, badgeY, badgeW, badgeH).fillColor(ACCENT).fill()
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#ffffff').text((payment.status || 'PAID').toString().toUpperCase(), badgeX + 6, badgeY + 3)
+
+    drawLabelValue('Provider:', safeText(payment.provider), labelColX, infoBoxY + 88, 60, valueWidth)
     doc.restore()
 
     // Divider under header
@@ -106,81 +138,89 @@ async function generateInvoicePdf(booking, payment) {
     doc.moveTo(startX, y).lineTo(startX + pageWidth, y).strokeColor(BORDER).lineWidth(1).stroke()
     y += 12
 
-    // Bill To and Reservation Details side-by-side cards
-    const cardHeight = 110
-    const cardGap = 16
-    const cardWidth = (pageWidth - cardGap) / 2
-    const card1X = startX
-    const card2X = startX + cardWidth + cardGap
+  // Bill To and Reservation Details side-by-side cards at requested Y ~165
+  y = 165
+  const cardHeight = 115
+  const leftCardX = 45
+  const rightCardX = 305
+  const cardW = 245
 
-    // Bill To card
-    doc.rect(card1X, y, cardWidth, cardHeight).fillColor(BOX_BG_ALT).fill()
-    doc.rect(card1X, y, cardWidth, cardHeight).lineWidth(1).strokeColor(BORDER).stroke()
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(MAIN_TEXT).text('Bill To', card1X + 10, y + 8)
-    doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
-    const clientName = `${safeText(booking.firstName)} ${safeText(booking.lastName)}`.trim() || '-'
-    doc.text(clientName, card1X + 10, y + 28)
-    doc.text(safeText(booking.email || '-'), card1X + 10, y + 44)
-    doc.text(safeText(booking.phone || '-'), card1X + 10, y + 60)
+  // Bill To card
+  doc.rect(leftCardX, y, cardW, cardHeight).fillColor(BOX_BG_ALT).fill()
+  doc.rect(leftCardX, y, cardW, cardHeight).lineWidth(1).strokeColor(BORDER).stroke()
+  doc.font('Helvetica-Bold').fontSize(11).fillColor(MAIN_TEXT).text('Bill To', leftCardX + 10, y + 8)
+  doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
+  const clientName = `${safeText(booking.firstName)} ${safeText(booking.lastName)}`.trim() || '-'
+  doc.text(clientName, leftCardX + 10, y + 28)
+  doc.text(safeText(booking.email || '-'), leftCardX + 10, y + 44)
+  doc.text(safeText(booking.phone || '-'), leftCardX + 10, y + 60)
 
-    // Reservation Details card
-    doc.rect(card2X, y, cardWidth, cardHeight).fillColor(BOX_BG_ALT).fill()
-    doc.rect(card2X, y, cardWidth, cardHeight).lineWidth(1).strokeColor(BORDER).stroke()
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(MAIN_TEXT).text('Reservation Details', card2X + 10, y + 8)
-    doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
-    const roomName = (booking.room && (booking.room.name || booking.room.title)) || booking.roomName || '-'
-    const checkIn = booking.checkInDate ? safeDate(booking.checkInDate) : '-'
-    const checkOut = booking.checkOutDate ? safeDate(booking.checkOutDate) : '-'
-    const nights = booking.nights || (booking.checkInDate && booking.checkOutDate ? Math.max(0, Math.round((new Date(booking.checkOutDate) - new Date(booking.checkInDate)) / 86400000)) : '-')
-    doc.text(`Apartment: ${safeText(roomName)}`, card2X + 10, y + 28)
-    doc.text(`Check-in: ${checkIn}`, card2X + 10, y + 44)
-    doc.text(`Check-out: ${checkOut}`, card2X + 10, y + 60)
-    doc.text(`Nights: ${safeText(nights)}  Guests: ${safeText(booking.guests)}`, card2X + 10, y + 76)
+  // Reservation Details card
+  doc.rect(rightCardX, y, cardW, cardHeight).fillColor(BOX_BG_ALT).fill()
+  doc.rect(rightCardX, y, cardW, cardHeight).lineWidth(1).strokeColor(BORDER).stroke()
+  doc.font('Helvetica-Bold').fontSize(11).fillColor(MAIN_TEXT).text('Reservation Details', rightCardX + 10, y + 8)
+  doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
+  const roomName = (booking.room && (booking.room.name || booking.room.title)) || booking.roomName || '-'
+  const checkIn = booking.checkInDate ? safeDate(booking.checkInDate) : '-'
+  const checkOut = booking.checkOutDate ? safeDate(booking.checkOutDate) : '-'
+  const nights = booking.nights || (booking.checkInDate && booking.checkOutDate ? Math.max(0, Math.round((new Date(booking.checkOutDate) - new Date(booking.checkInDate)) / 86400000)) : '-')
+  doc.text(`Apartment: ${safeText(roomName)}`, rightCardX + 10, y + 28)
+  doc.text(`Check-in: ${checkIn}`, rightCardX + 10, y + 44)
+  doc.text(`Check-out: ${checkOut}`, rightCardX + 10, y + 60)
+  doc.text(`Nights: ${safeText(nights)}`, rightCardX + 10, y + 76)
+  doc.text(`Guests: ${safeText(booking.guests)}`, rightCardX + 10, y + 92)
 
     // Charges table
-    y = y + cardHeight + 20
-    const tableX = startX
-    const tableWidth = pageWidth
-    const col1 = tableX + 10
-    const col2 = tableX + 220
-    const col3 = tableX + tableWidth - 110
+  y = 315
+  const tableX = 45
+  const tableWidth = 505
+  const descW = 190
+  const detailsW = 220
+  const amountW = 95
+  const col1 = tableX
+  const col2 = tableX + descW + 10
+  const col3 = col2 + detailsW + 10
 
-    // Table header
-    doc.rect(tableX, y, tableWidth, 24).fillColor(BOX_BG).fill()
-    doc.rect(tableX, y, tableWidth, 24).lineWidth(1).strokeColor(BORDER).stroke()
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT)
-    doc.text('Description', col1, y + 6)
-    doc.text('Details', col2, y + 6)
-    doc.text('Amount', col3, y + 6, { width: 90, align: 'right' })
+  // Table header
+  doc.rect(tableX, y, tableWidth, 26).fillColor(BOX_BG).fill()
+  doc.rect(tableX, y, tableWidth, 26).lineWidth(1).strokeColor(BORDER).stroke()
+  doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT)
+  doc.text('Description', col1 + 6, y + 8, { width: descW })
+  doc.text('Details', col2 + 6, y + 8, { width: detailsW })
+  doc.text('Amount', col3 + 6, y + 8, { width: amountW, align: 'right' })
 
-    // Table row
-    y += 28
-    doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
-    doc.text('Apartment reservation', col1, y)
-    const bookingDates = (checkIn !== '-' || checkOut !== '-') ? `${checkIn} → ${checkOut}` : '-'
-    doc.text(`${safeText(roomName)} ${bookingDates}`, col2, y)
-    const amount = payment.amount || (booking.pricing && booking.pricing.totalAmount) || 0
-    const currency = payment.currency || (booking.pricing && booking.pricing.currency) || 'EUR'
-    doc.text(`${money(amount)} ${currency}`, col3, y, { width: 90, align: 'right' })
+  // Table row
+  y += 34
+  doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
+  doc.text('Apartment reservation', col1 + 6, y, { width: descW })
+  const bookingDates = (checkIn !== '-' || checkOut !== '-') ? `${checkIn} - ${checkOut}` : '-'
+  doc.text(`${safeText(roomName)} ${bookingDates}`, col2 + 6, y, { width: detailsW })
+  const amount = payment.amount || (booking.pricing && booking.pricing.totalAmount) || 0
+  const currency = payment.currency || (booking.pricing && booking.pricing.currency) || 'EUR'
+  // Ensure amount stays inside table
+  doc.text(`${money(amount)} ${currency}`, col3 + 6, y, { width: amountW - 6, align: 'right' })
 
     // Totals box bottom-right
-    y += 36
-    const totalsBoxW = 240
-    const totalsBoxH = 82
-    const totalsX = startX + pageWidth - totalsBoxW
-    doc.rect(totalsX, y, totalsBoxW, totalsBoxH).fillColor(BOX_BG_ALT).fill()
-    doc.rect(totalsX, y, totalsBoxW, totalsBoxH).lineWidth(1).strokeColor(BORDER).stroke()
-    doc.font('Helvetica').fontSize(10).fillColor(SECONDARY)
-    doc.text('Subtotal', totalsX + 12, y + 12)
-    doc.text(`${money(amount)} ${currency}`, totalsX + totalsBoxW - 12, y + 12, { width: 90, align: 'right' })
-    doc.text('Tax/VAT', totalsX + 12, y + 30)
-    doc.text('Included', totalsX + totalsBoxW - 12, y + 30, { width: 90, align: 'right' })
-    doc.font('Helvetica-Bold').fontSize(12).fillColor(MAIN_TEXT)
-    doc.text('Total Paid', totalsX + 12, y + 52)
-    doc.text(`${money(amount)} ${currency}`, totalsX + totalsBoxW - 12, y + 52, { width: 90, align: 'right' })
+  // Totals box as requested: x 355 width 195
+  y += 36
+  const totalsX = 355
+  const totalsW = 195
+  const totalsH = 82
+  doc.rect(totalsX, y, totalsW, totalsH).fillColor(BOX_BG_ALT).fill()
+  doc.rect(totalsX, y, totalsW, totalsH).lineWidth(1).strokeColor(BORDER).stroke()
+  // labels left, values right
+  const labelX = totalsX + 12
+  const valueX = totalsX + totalsW - 12
+  doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT).text('Subtotal', labelX, y + 12)
+  doc.text(`${money(amount)} ${currency}`, valueX - 90, y + 12, { width: 90, align: 'right' })
+  doc.text('Tax/VAT', labelX, y + 30)
+  doc.text('Included', valueX - 90, y + 30, { width: 90, align: 'right' })
+  doc.font('Helvetica-Bold').fontSize(12).fillColor(MAIN_TEXT)
+  doc.text('Total Paid', labelX, y + 52)
+  doc.text(`${money(amount)} ${currency}`, valueX - 90, y + 52, { width: 90, align: 'right' })
 
-    // Payment confirmation
-    y = y + totalsBoxH + 18
+  // Payment confirmation
+  y = y + totalsH + 18
     doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
     doc.text('This invoice confirms that the payment for this reservation has been successfully received.', startX, y, { width: pageWidth - 20 })
 
