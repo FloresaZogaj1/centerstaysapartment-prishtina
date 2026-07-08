@@ -71,70 +71,94 @@ async function generateInvoicePdf(booking, payment) {
     }
 
     const logoPaths = [
+      // prefer an explicit backend asset the laser expects
+      path.resolve(__dirname, '..', 'assets', 'centerstays-logo.png'),
       path.resolve(__dirname, '..', 'assets', 'logo.png'),
-      path.resolve(__dirname, '..', '..', 'public', 'logo.png'),
       path.resolve(__dirname, '..', '..', 'public', 'centerstays-logo.png'),
-      path.resolve(__dirname, '..', '..', 'public', 'Instagram_files', '472018000_1248431362937566_3208334774464705125_n(1).jpg')
+      path.resolve(__dirname, '..', '..', 'public', 'logo.png'),
+      path.resolve(__dirname, '..', '..', 'public', 'Instagram_files', '472018000_1248431362937566_3208334774464705125_n(1).jpg'),
+      // exact Instagram file path provided by user
+      path.resolve(__dirname, '..', '..', 'public', 'Instagram_files', '472018000_1248431362937566_3208334774464705125_n.jpg')
     ]
     let usedLogo = null
     for (const p of logoPaths) {
       try { if (fs.existsSync(p)) { usedLogo = p; break } } catch (e) {}
     }
 
-    // Draw logo or business name at fixed header left
-    const headerLeftX = startX
-    const headerLeftY = 35
+    // Draw logo (left) and business text (to the right) with precise coordinates
+    const logoX = 45
+    const logoY = 35
+    const logoW = 85
+    const businessTextX = 145
+    const businessTextY = 38
+
     if (usedLogo) {
-      try { doc.image(usedLogo, headerLeftX, headerLeftY, { width: 110 }) } catch (e) {
-        doc.font('Helvetica-Bold').fontSize(20).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', headerLeftX, headerLeftY)
+      try {
+        doc.image(usedLogo, logoX, logoY, { width: logoW })
+      } catch (e) {
+        // fall back to text if image cannot be rendered
+        doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', logoX, logoY)
       }
     } else {
-      doc.font('Helvetica-Bold').fontSize(20).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', headerLeftX, headerLeftY)
+      doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', logoX, logoY)
     }
 
-    // Business info under logo with smaller font
+    // Business info to the right of the logo
+    doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', businessTextX, businessTextY)
     doc.font('Helvetica').fontSize(9).fillColor(SECONDARY)
-    doc.text('Prishtina, Kosovo', headerLeftX, headerLeftY + 28)
-    doc.text('+383 48 110 988')
-    doc.text('centerstays@gmail.com')
-    doc.text('centerstays.apartments')
+    doc.text('Prishtina, Kosovo', businessTextX, businessTextY + 22)
+    doc.text('+383 48 110 988', businessTextX, businessTextY + 36)
+    doc.text('centerstays@gmail.com', businessTextX, businessTextY + 50)
+    doc.text('centerstays.apartments', businessTextX, businessTextY + 64)
 
-    // Right-side invoice box at fixed coordinates (per spec)
-    const infoBoxX = 390
+    // Right-side invoice box at requested coordinates
+    const infoBoxX = 365
     const infoBoxY = 35
-  let infoBoxW = 160
-    const infoBoxH = 105
-    const labelColX = 405
-    const valueColX = 470
-    const labelWidth = valueColX - labelColX - 6
-    const valueWidth = infoBoxX + infoBoxW - valueColX - 6
+    let infoBoxW = 185
+    const infoBoxH = 125
 
-    // Ensure we don't draw past x=550
+    // keep inside printable area
     if (infoBoxX + infoBoxW > 550) infoBoxW = 550 - infoBoxX
+
+    // label/value column setup inside the info box
+    const innerPad = 8
+    const labelColX = infoBoxX + innerPad
+    const valueColX = infoBoxX + infoBoxW - innerPad - 10
+    const labelWidth = 60
+    const valueWidth = valueColX - (labelColX + labelWidth) - 6
 
     doc.save()
     doc.rect(infoBoxX, infoBoxY, infoBoxW, infoBoxH).fillColor(BOX_BG).fill()
     doc.rect(infoBoxX, infoBoxY, infoBoxW, infoBoxH).lineWidth(1).strokeColor(BORDER).stroke()
-    doc.font('Helvetica-Bold').fontSize(14).fillColor(MAIN_TEXT).text('INVOICE', infoBoxX + 8, infoBoxY + 8)
+    doc.font('Helvetica-Bold').fontSize(14).fillColor(MAIN_TEXT).text('INVOICE', infoBoxX + innerPad, infoBoxY + innerPad)
 
-    // Draw label/value pairs using helper
-    drawLabelValue('Invoice No:', safeText(invoiceNumber), labelColX, infoBoxY + 30, 60, valueWidth)
-    drawLabelValue('Date:', formatDate(payment.invoiceSentAt || payment.updatedAt || payment.createdAt), labelColX, infoBoxY + 48, 60, valueWidth)
+    // Invoice number: put on its own line and use a tiny font if it's long
+    const invLabelY = infoBoxY + 30
+    const invVal = safeText(invoiceNumber)
+    if (invVal.length > 20) {
+      doc.font('Helvetica-Bold').fontSize(7).fillColor(MAIN_TEXT).text('Invoice No:', labelColX, invLabelY)
+      doc.font('Helvetica').fontSize(7).fillColor(SECONDARY).text(invVal, labelColX + labelWidth + 6, invLabelY, { width: infoBoxW - (labelWidth + innerPad + 12) })
+    } else {
+      drawLabelValue('Invoice No:', invVal, labelColX, invLabelY, labelWidth, valueWidth)
+    }
 
-    // Status row with PAID badge on its own row
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(MAIN_TEXT).text('Status:', labelColX, infoBoxY + 66)
-    const badgeW = 56
-    const badgeH = 18
-    const badgeX = valueColX
-    const badgeY = infoBoxY + 64
-    doc.rect(badgeX, badgeY, badgeW, badgeH).fillColor(ACCENT).fill()
+    drawLabelValue('Date:', formatDate(payment.invoiceSentAt || payment.updatedAt || payment.createdAt), labelColX, infoBoxY + 52, labelWidth, valueWidth)
+
+    // Status row with PAID badge placed near the right edge of the box
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(MAIN_TEXT).text('Status:', labelColX, infoBoxY + 74)
+    const badgeW = 60
+    const badgeH = 16
+    const badgeX = infoBoxX + infoBoxW - badgeW - innerPad
+    const badgeY = infoBoxY + 72
+    doc.roundedRect ? doc.roundedRect(badgeX, badgeY, badgeW, badgeH, 3).fillColor(ACCENT).fill() : doc.rect(badgeX, badgeY, badgeW, badgeH).fillColor(ACCENT).fill()
     doc.font('Helvetica-Bold').fontSize(9).fillColor('#ffffff').text((payment.status || 'PAID').toString().toUpperCase(), badgeX + 6, badgeY + 3)
 
-    drawLabelValue('Provider:', safeText(payment.provider), labelColX, infoBoxY + 88, 60, valueWidth)
+    drawLabelValue('Provider:', safeText(payment.provider), labelColX, infoBoxY + 96, labelWidth, valueWidth)
     doc.restore()
 
-    // Divider under header
-    y = headerLeftY + 36
+  // Divider under header
+  const headerBottomY = (typeof businessTextY !== 'undefined') ? businessTextY + 36 : (logoY + 36)
+  y = headerBottomY
     doc.moveTo(startX, y).lineTo(startX + pageWidth, y).strokeColor(BORDER).lineWidth(1).stroke()
     y += 12
 
