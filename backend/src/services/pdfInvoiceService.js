@@ -248,10 +248,11 @@ async function generateInvoicePdf(booking, payment) {
     doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
     doc.text('This invoice confirms that the payment for this reservation has been successfully received.', startX, y, { width: pageWidth - 20 })
 
-    // Footer
-    doc.fontSize(9).fillColor(SECONDARY)
-    doc.text('Thank you for choosing CenterStays Apartments.', startX, doc.page.height - 70)
-    doc.text('This invoice was generated automatically after successful payment.', startX, doc.page.height - 56)
+  // Footer — keep a single clean line. Removed automated-generation sentence per request.
+  doc.fontSize(9).fillColor(SECONDARY)
+  // Position the single footer line a bit above the bottom to avoid collisions
+  const footerY = doc.page.height - 62
+  doc.text('Thank you for choosing CenterStays Apartments.', startX, footerY)
 
     // End PDF
     doc.end()
