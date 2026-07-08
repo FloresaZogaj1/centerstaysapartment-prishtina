@@ -69,6 +69,7 @@ app.use('/api/payments', paymentRoutes)
 // BKT / NestPay routes
 app.use('/api/payments/bkt', bktPaymentRoutes)
 app.use('/api/admin', adminRoutes)
+try { console.log('[BOOT] admin routes mounted at /api/admin') } catch (e) {}
 
 // Serve generated invoices (PDFs) from /invoices
 try {

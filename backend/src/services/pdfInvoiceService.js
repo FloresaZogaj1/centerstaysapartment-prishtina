@@ -79,6 +79,17 @@ async function generateInvoicePdf(booking, payment) {
       stream.on('error', reject)
     })
 
+    // Verify file exists before returning
+    try {
+      if (!fs.existsSync(filepath)) {
+        console.error('[pdfInvoiceService] file not found after write', { filepath })
+        return { ok: false, reason: 'file_missing_after_write', path: filepath }
+      }
+    } catch (e) {
+      console.error('[pdfInvoiceService] exists check failed', { message: e && e.message })
+      return { ok: false, error: e && e.message }
+    }
+
     return { ok: true, path: filepath, filename }
   } catch (e) {
     console.error('[pdfInvoiceService] error', e && e.message ? e.message : e)

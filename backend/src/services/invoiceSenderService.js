@@ -28,7 +28,7 @@ async function sendInvoiceForPayment(payment, { force = false } = {}) {
     const pdf = await pdfInvoiceService.generateInvoicePdf(booking, full)
     if (!pdf || !pdf.ok) return { ok: false, reason: 'pdf_failed', error: pdf && pdf.error }
 
-    // Prepare email body
+  // Prepare email body
     const customerName = `${booking.firstName || ''} ${booking.lastName || ''}`.trim()
     const subject = 'Invoice for your Center Stay Apartments reservation'
     const html = `
@@ -47,23 +47,26 @@ async function sendInvoiceForPayment(payment, { force = false } = {}) {
       <p>Best regards,<br/>Center Stay Apartments Prishtina</p>
     `
 
-    // Attach PDF
-    const attachments = [
-      {
-        filename: pdf.filename,
-        path: pdf.path,
-        contentType: 'application/pdf'
+    // Attach PDF and verify file exists
+    const fs = require('fs')
+    const attachments = [ { filename: pdf.filename, path: pdf.path, contentType: 'application/pdf' } ]
+    try {
+      if (!fs.existsSync(pdf.path)) {
+        return { ok: false, reason: 'pdf_file_missing', path: pdf.path }
       }
-    ]
+    } catch (e) {
+      return { ok: false, reason: 'pdf_exists_check_failed', error: e && e.message }
+    }
 
-    // Validate customer email presence
-    const to = booking.email
-    if (!to) return { ok: false, reason: 'missing_customer_email' }
+    // Validate customer email presence and basic format
+    const to = booking.email && String(booking.email).trim()
+    const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+    if (!to || !emailRegex.test(to)) return { ok: false, reason: 'invalid_customer_email' }
 
     // Send email using emailService.sendMail which prefers Brevo when configured
     const sendResult = await emailService.sendMail({ from: process.env.EMAIL_FROM, to, toName: `${booking.firstName || ''} ${booking.lastName || ''}`.trim(), subject, html, attachments })
 
-    if (!sendResult || !sendResult.ok) {
+  if (!sendResult || !sendResult.ok) {
       // Persist error info to payment
       try {
         full.paidCustomerEmailError = sendResult && sendResult.error ? String(sendResult.error) : 'send_failed'
@@ -78,13 +81,18 @@ async function sendInvoiceForPayment(payment, { force = false } = {}) {
       if (sendResult && sendResult.brevoError) failure.brevoError = sendResult.brevoError
       // Attach attachment info if available
       try {
-        const fs = require('fs')
         if (attachments && attachments[0] && attachments[0].path && fs.existsSync(attachments[0].path)) {
           const st = fs.statSync(attachments[0].path)
           failure.attachment = { filename: attachments[0].filename, size: st.size }
-          console.error('[invoiceSenderService] Brevo send failed for', { to, from: process.env.EMAIL_FROM, filename: attachments[0].filename, size: st.size })
+          console.error('[invoiceSenderService] send failed for', { to, from: process.env.EMAIL_FROM, filename: attachments[0].filename, size: st.size })
         }
       } catch (e) {}
+
+      // If Brevo returned structured error info, include it
+      if (sendResult && sendResult.statusCode) failure.statusCode = sendResult.statusCode
+      if (sendResult && sendResult.brevoError) failure.brevoError = sendResult.brevoError
+      if (sendResult && sendResult.recipient) failure.recipient = sendResult.recipient
+      if (sendResult && sendResult.senderEmail) failure.senderEmail = sendResult.senderEmail
 
       return { ok: false, reason: 'send_failed', failure }
     }

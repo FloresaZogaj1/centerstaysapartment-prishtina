@@ -1,5 +1,7 @@
 const express = require('express')
 const router = express.Router()
+// Boot marker for admin routes
+try { console.log('[BOOT] adminRoutes module loaded - registering admin routes') } catch (e) {}
 const emailService = require('../services/emailService')
 const Payment = require('../models/Payment')
 const Booking = require('../models/Booking')
@@ -79,6 +81,37 @@ router.get('/payments/latest', async (req, res) => {
   }
 })
 
+// GET /api/admin/payments/paid-invoices - list all paid payments with downloadUrl (admin protected)
+router.get('/payments/paid-invoices', async (req, res) => {
+  try {
+    const apiKey = req.headers['x-admin-api-key']
+    if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) return res.status(401).json({ message: 'Unauthorized' })
+
+    const payments = await Payment.find({ status: 'paid' })
+      .sort({ updatedAt: -1 })
+      .populate({ path: 'booking', populate: { path: 'room' } })
+      .lean()
+
+    const mapped = payments.map(p => ({
+      paymentId: p._id,
+      bookingId: p.booking ? p.booking._id : null,
+      guestName: p.booking ? `${p.booking.firstName || ''} ${p.booking.lastName || ''}`.trim() : '',
+      email: p.booking ? p.booking.email || '' : '',
+      phone: p.booking ? p.booking.phone || '' : '',
+      amount: p.amount || 0,
+      currency: p.currency || 'EUR',
+      status: p.status || '',
+      invoiceNumber: p.invoiceNumber || null,
+      downloadUrl: `/api/admin/payments/${p._id}/invoice`
+    }))
+
+    return res.json(mapped)
+  } catch (err) {
+    console.error('[admin/payments/paid-invoices] error', err && err.message ? err.message : err)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+})
+
 // GET /api/admin/payments/:paymentId/invoice - generate or return invoice PDF for a paid payment
 router.get('/payments/:paymentId/invoice', async (req, res) => {
   try {
@@ -133,19 +166,19 @@ router.get('/payments/latest-paid-invoices', async (req, res) => {
 
     const mapped = await Promise.all(payments.map(async p => {
       const paymentId = p._id
-      const invoicePath = p.invoiceSentAt ? `/invoices/invoice-${p.invoiceNumber || String(paymentId).slice(-8)}-${String(paymentId).slice(-6)}.pdf` : null
-      // If invoice not present, we won't generate here; client can request invoice endpoint to generate
+      // Use dynamic download endpoint to ensure file is generated/streamed on demand
+      const invoiceUrl = `/api/admin/payments/${paymentId}/invoice`
       return {
         paymentId,
         bookingId: p.booking ? p.booking._id : null,
         guestName: p.booking ? `${p.booking.firstName || ''} ${p.booking.lastName || ''}`.trim() : '',
+        email: p.booking ? p.booking.email || '' : '',
+        phone: p.booking ? p.booking.phone || '' : '',
         amount: p.amount || 0,
         currency: p.currency || 'EUR',
-        paymentStatus: p.status || '',
-        paymentMethod: p.provider || '',
-        transactionId: p.providerTransactionId || p.providerOrderId || '',
-        paidAt: p.updatedAt || p.callbackReceivedAt || p.createdAt,
-        invoiceUrl: invoicePath
+        status: p.status || '',
+        invoiceNumber: p.invoiceNumber || null,
+        downloadUrl: invoiceUrl
       }
     }))
 
@@ -199,9 +232,44 @@ router.post('/payments/:paymentId/send-invoice', async (req, res) => {
   if (result && result.ok) return res.json({ ok: true, sentAt: result.sentAt })
   // If service included structured failure info, expose it to admin response
   if (result && result.failure) return res.status(500).json({ ok: false, failure: result.failure })
+  // For known validation errors, return 400
+  if (result && result.reason === 'invalid_customer_email') return res.status(400).json({ ok: false, error: 'invalid_customer_email' })
+  if (result && result.reason === 'missing_customer_email') return res.status(400).json({ ok: false, error: 'missing_customer_email' })
+  if (result && result.reason === 'pdf_file_missing') return res.status(500).json({ ok: false, error: 'pdf_file_missing', path: result && result.path })
   return res.status(500).json({ ok: false, error: result && result.error ? result.error : result && result.reason ? result.reason : 'failed' })
   } catch (err) {
     console.error('[admin/payments/:paymentId/send-invoice] error', err && err.message ? err.message : err)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+})
+
+// GET /api/admin/payments/paid-invoices - list all paid payments with downloadUrl (admin protected)
+router.get('/payments/paid-invoices', async (req, res) => {
+  try {
+    const apiKey = req.headers['x-admin-api-key']
+    if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) return res.status(401).json({ message: 'Unauthorized' })
+
+    const payments = await Payment.find({ status: 'paid' })
+      .sort({ updatedAt: -1 })
+      .populate({ path: 'booking', populate: { path: 'room' } })
+      .lean()
+
+    const mapped = payments.map(p => ({
+      paymentId: p._id,
+      bookingId: p.booking ? p.booking._id : null,
+      guestName: p.booking ? `${p.booking.firstName || ''} ${p.booking.lastName || ''}`.trim() : '',
+      email: p.booking ? p.booking.email || '' : '',
+      phone: p.booking ? p.booking.phone || '' : '',
+      amount: p.amount || 0,
+      currency: p.currency || 'EUR',
+      status: p.status || '',
+      invoiceNumber: p.invoiceNumber || null,
+      downloadUrl: `/api/admin/payments/${p._id}/invoice`
+    }))
+
+    return res.json(mapped)
+  } catch (err) {
+    console.error('[admin/payments/paid-invoices] error', err && err.message ? err.message : err)
     return res.status(500).json({ message: 'Internal server error' })
   }
 })

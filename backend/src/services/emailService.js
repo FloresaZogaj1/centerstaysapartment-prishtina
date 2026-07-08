@@ -72,8 +72,8 @@ function createTransporter(){
 async function sendMail(opts){
   // If Brevo API key is present, use Brevo REST API instead of SMTP
   if (brevoConfigured()) {
-    // forward attachments if present
-    return sendEmailWithBrevoApi({ to: opts && opts.to, subject: opts && opts.subject, html: opts && opts.html, text: opts && opts.text, attachments: opts && opts.attachments })
+    // forward attachments and recipient name if present
+    return sendEmailWithBrevoApi({ to: opts && opts.to, toName: opts && opts.toName, subject: opts && opts.subject, html: opts && opts.html, text: opts && opts.text, attachments: opts && opts.attachments })
   }
 
   const transporter = createTransporter()
@@ -149,34 +149,36 @@ async function verifyTransporter(){
   }
 }
 
-async function sendEmailWithBrevoApi({ to, subject, html, text }){
+async function sendEmailWithBrevoApi({ to, toName, subject, html, text, attachments }){
   try {
-    console.log('[Email][Brevo API] sending', { to, subject })
+    console.log('[Email][Brevo API] sending', { to, toName, subject })
     // Accept attachments array: [{ filename, path, content, contentType }]
     const payload = {
       sender: {
         email: process.env.EMAIL_FROM,
         name: process.env.BREVO_FROM_NAME || 'CenterStays Apartments'
       },
-      to: [{ email: to }],
+      to: [{ email: to, name: toName || undefined }],
       subject: subject,
       htmlContent: html || text || '',
       textContent: text || ''
     }
 
     // handle attachments by reading files and base64-encoding them
-    if (arguments && arguments[0] && arguments[0].attachments && Array.isArray(arguments[0].attachments) && arguments[0].attachments.length) {
+    const attachmentMeta = []
+    if (attachments && Array.isArray(attachments) && attachments.length) {
       const atts = []
-      for (const a of arguments[0].attachments) {
+      for (const a of attachments) {
         try {
-          // prefer path, otherwise accept provided content (Buffer or base64)
+          const fs = require('fs')
           if (a.path) {
-            const fs = require('fs')
             const buf = fs.readFileSync(a.path)
             atts.push({ name: a.filename || (a.name || 'attachment.pdf'), content: buf.toString('base64') })
+            attachmentMeta.push({ filename: a.filename || (a.name || 'attachment.pdf'), size: buf.length })
           } else if (a.content) {
-            const content = Buffer.isBuffer(a.content) ? a.content.toString('base64') : Buffer.from(String(a.content)).toString('base64')
-            atts.push({ name: a.filename || (a.name || 'attachment.pdf'), content })
+            const buf = Buffer.isBuffer(a.content) ? a.content : Buffer.from(String(a.content))
+            atts.push({ name: a.filename || (a.name || 'attachment.pdf'), content: buf.toString('base64') })
+            attachmentMeta.push({ filename: a.filename || (a.name || 'attachment.pdf'), size: buf.length })
           }
         } catch (e) {
           console.error('[Email][Brevo API] attachment read failed', { filename: a && a.filename, message: e && e.message })
@@ -184,6 +186,9 @@ async function sendEmailWithBrevoApi({ to, subject, html, text }){
       }
       if (atts.length) payload.attachment = atts
     }
+
+    // Validate htmlContent is a string
+    if (typeof payload.htmlContent !== 'string') payload.htmlContent = String(payload.htmlContent || '')
 
     const resp = await axios.post('https://api.brevo.com/v3/smtp/email', payload, {
       headers: {
@@ -197,14 +202,23 @@ async function sendEmailWithBrevoApi({ to, subject, html, text }){
     const data = resp && resp.data ? resp.data : {}
     if (!resp || resp.status < 200 || resp.status >= 300) {
       console.error('[Email][Brevo API] send failed', { to, subject, status: resp && resp.status, response: data })
-      return { ok: false, error: data && data.message ? data.message : `Brevo API failed with status ${resp && resp.status}`, status: resp && resp.status }
+      return { ok: false, error: data && data.message ? data.message : `Brevo API failed with status ${resp && resp.status}`, statusCode: resp && resp.status, brevoError: data, recipient: to, senderEmail: process.env.EMAIL_FROM, attachment: attachmentMeta }
     }
 
     console.log('[Email][Brevo API] sent', { to, subject, messageId: data && data.messageId })
     return { ok: true, messageId: data && data.messageId }
   } catch (err) {
-    // Standardize on a "send failed" log label so it's easy to grep in
-    // platform logs.
+    // If Brevo returned a response body, surface it in a structured way
+    try {
+      if (err && err.response) {
+        const status = err.response.status
+        const data = err.response.data
+        console.error('[Email][Brevo API] send failed', { status, data, recipient: to, senderEmail: process.env.EMAIL_FROM })
+        return { ok: false, statusCode: status, brevoError: data, recipient: to, senderEmail: process.env.EMAIL_FROM }
+      }
+    } catch (e) {}
+
+    // Standard fallback
     console.error('[Email][Brevo API] send failed', { to, subject, message: err && err.message })
     return { ok: false, error: err && err.message }
   }
