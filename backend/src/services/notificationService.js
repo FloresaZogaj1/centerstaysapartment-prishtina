@@ -38,17 +38,90 @@ async function handlePaymentResultNotification({ paymentId, bookingId, status, r
 
       // Send customer + admin emails idempotently
       if (emailConfigured && !payment.paidCustomerEmailSentAt) {
-        try { const ok = await emailService.sendBookingPaidCustomerEmail(booking); if (ok) await markAndSave('paidCustomerEmailSentAt'); result.actions.push({ paidCustomerEmailSent: !!ok }) } catch (e) { console.error('[notificationService] paidCustomerEmail error', e && e.message ? e.message : e); result.actions.push({ paidCustomerEmailSent: false }) }
+        try {
+          const resCust = await emailService.sendBookingPaidCustomerEmail(booking)
+          if (resCust) {
+            await markAndSave('paidCustomerEmailSentAt')
+            result.actions.push({ paidCustomerEmailSent: true })
+          } else {
+            result.actions.push({ paidCustomerEmailSent: false })
+            payment.paidCustomerEmailError = payment.paidCustomerEmailError || 'send_failed'
+            await payment.save()
+          }
+        } catch (e) { console.error('[notificationService] paidCustomerEmail error', e && e.message ? e.message : e); result.actions.push({ paidCustomerEmailSent: false }) }
       }
       if (emailConfigured && !payment.paidAdminEmailSentAt) {
-        try { const ok = await emailService.sendBookingPaidAdminEmail(booking, payment); if (ok) await markAndSave('paidAdminEmailSentAt'); result.actions.push({ paidAdminEmailSent: !!ok }) } catch (e) { console.error('[notificationService] paidAdminEmail error', e && e.message ? e.message : e); result.actions.push({ paidAdminEmailSent: false }) }
+        try {
+          const resAdmin = await emailService.sendBookingPaidAdminEmail(booking, payment)
+          if (resAdmin) {
+            await markAndSave('paidAdminEmailSentAt')
+            result.actions.push({ paidAdminEmailSent: true })
+          } else {
+            result.actions.push({ paidAdminEmailSent: false })
+            payment.paidAdminEmailError = payment.paidAdminEmailError || 'send_failed'
+            await payment.save()
+          }
+        } catch (e) { console.error('[notificationService] paidAdminEmail error', e && e.message ? e.message : e); result.actions.push({ paidAdminEmailSent: false }) }
       }
     } else if (status === 'failed' || status === 'declined') {
+      let customerResult = { ok: false }
+      let adminResult = { ok: false }
       if (emailConfigured && !payment.failedCustomerEmailSentAt) {
-        try { const ok = await emailService.sendBookingFailedCustomerEmail(booking, payment); if (ok) await markAndSave('failedCustomerEmailSentAt'); result.actions.push({ failedCustomerEmailSent: !!ok }) } catch (e) { console.error('[notificationService] failedCustomerEmail error', e && e.message ? e.message : e); result.actions.push({ failedCustomerEmailSent: false }) }
+        try {
+          customerResult.ok = await emailService.sendBookingFailedCustomerEmail(booking, payment)
+          if (customerResult.ok) {
+            await markAndSave('failedCustomerEmailSentAt')
+            result.actions.push({ failedCustomerEmailSent: true })
+          } else {
+            result.actions.push({ failedCustomerEmailSent: false })
+            payment.failedCustomerEmailError = payment.failedCustomerEmailError || 'send_failed'
+            await payment.save()
+          }
+        } catch (e) {
+          customerResult = { ok: false, error: e && e.message ? e.message : String(e) }
+          console.error('[notificationService] failedCustomerEmail error', customerResult.error)
+          result.actions.push({ failedCustomerEmailSent: false })
+          payment.failedCustomerEmailError = payment.failedCustomerEmailError || customerResult.error
+          await payment.save()
+        }
+      } else if (payment.failedCustomerEmailSentAt) {
+        customerResult.ok = true
       }
+
       if (emailConfigured && !payment.failedAdminEmailSentAt) {
-        try { const ok = await emailService.sendBookingFailedAdminEmail(booking, payment); if (ok) await markAndSave('failedAdminEmailSentAt'); result.actions.push({ failedAdminEmailSent: !!ok }) } catch (e) { console.error('[notificationService] failedAdminEmail error', e && e.message ? e.message : e); result.actions.push({ failedAdminEmailSent: false }) }
+        try {
+          adminResult.ok = await emailService.sendBookingFailedAdminEmail(booking, payment)
+          if (adminResult.ok) {
+            await markAndSave('failedAdminEmailSentAt')
+            result.actions.push({ failedAdminEmailSent: true })
+          } else {
+            result.actions.push({ failedAdminEmailSent: false })
+            payment.failedAdminEmailError = payment.failedAdminEmailError || 'send_failed'
+            await payment.save()
+          }
+        } catch (e) {
+          adminResult = { ok: false, error: e && e.message ? e.message : String(e) }
+          console.error('[notificationService] failedAdminEmail error', adminResult.error)
+          result.actions.push({ failedAdminEmailSent: false })
+          payment.failedAdminEmailError = payment.failedAdminEmailError || adminResult.error
+          await payment.save()
+        }
+      } else if (payment.failedAdminEmailSentAt) {
+        adminResult.ok = true
+      }
+
+      // Final logging: completed vs completed with errors
+      if (customerResult.ok && adminResult.ok) {
+        console.log('[Payment Notification] completed', { bookingId: String(booking._id), paymentId: String(payment._id), actions: result.actions })
+      } else {
+        console.error('[Payment Notification] completed with errors', {
+          bookingId: booking?._id ? String(booking._id) : null,
+          paymentId: String(payment._id),
+          customerEmailOk: !!customerResult.ok,
+          adminEmailOk: !!adminResult.ok,
+          customerEmailError: customerResult.error || payment.failedCustomerEmailError,
+          adminEmailError: adminResult.error || payment.failedAdminEmailError
+        })
       }
     } else if (status === 'cancelled') {
       if (emailConfigured && !payment.cancelledCustomerEmailSentAt) {

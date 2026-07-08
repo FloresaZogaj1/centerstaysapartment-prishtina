@@ -161,6 +161,47 @@ module.exports = {
   createBankartPayment,
 }
 
+// Admin API: return latest 3 successful payments
+async function latestPaymentsController(req, res) {
+  try {
+    const apiKey = req.headers['x-admin-api-key']
+    if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) {
+      return res.status(401).json({ message: 'Unauthorized' })
+    }
+
+    const Payment = require('../models/Payment')
+    // Filter for successful/paid payments. The schema uses `status` with 'paid'.
+    const payments = await Payment.find({ status: 'paid' })
+      .sort({ callbackReceivedAt: -1, createdAt: -1 })
+      .limit(3)
+      .populate('booking')
+      .lean()
+
+    const mapped = payments.map(p => ({
+      paymentId: p._id,
+      bookingId: p.booking ? p.booking._id : p.booking,
+      guestName: p.booking ? `${p.booking.firstName || ''} ${p.booking.lastName || ''}`.trim() : '',
+      email: p.booking ? p.booking.email || '' : '',
+      phone: p.booking ? p.booking.phone || '' : '',
+      roomName: p.booking && p.booking.room ? (p.booking.room.name || '') : (p.booking ? (p.booking.roomName || '') : ''),
+      amount: p.amount || 0,
+      currency: p.currency || '',
+      paymentStatus: p.status || '',
+      paymentMethod: p.provider || '',
+      transactionId: p.providerTransactionId || p.providerOrderId || p.bankartTransactionId || p.merchantTransactionId || '',
+      paidAt: p.callbackReceivedAt || p.paidAt || null,
+      createdAt: p.createdAt || null
+    }))
+
+    return res.json(mapped)
+  } catch (err) {
+    console.error('[payments/latest] error', err && err.message ? err.message : err)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+}
+
+module.exports.latestPaymentsController = latestPaymentsController
+
 // Bankart callback/webhook handler - improved logging, verification, mapping and persistence
 // Move all async processing into processBankartCallbackAsync so the HTTP response is immediate.
 async function processBankartCallbackAsync (payload = {}, headers = {}, rawBody = null, requestPath = '/', method = 'POST') {

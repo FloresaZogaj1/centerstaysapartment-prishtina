@@ -110,3 +110,45 @@ module.exports = {
   calculateBookingTotalController,
   createBookingController,
 }
+
+// Admin-only: return the latest 3 bookings with selected fields
+async function latestBookingsController(req, res) {
+  try {
+    const apiKey = req.headers['x-admin-api-key']
+    if (!apiKey || apiKey !== process.env.ADMIN_API_KEY) {
+      return res.status(401).json({ message: 'Unauthorized' })
+    }
+
+    const Booking = require('../models/Booking')
+    const bookings = await Booking.find()
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .populate('room')
+      .lean()
+
+    const mapped = bookings.map(b => ({
+      guestName: `${b.firstName || ''} ${b.lastName || ''}`.trim(),
+      email: b.email || '',
+      phone: b.phone || '',
+      roomName: (b.room && (b.room.name || b.room.title)) ? (b.room.name || b.room.title) : (b.roomName || ''),
+      checkInDate: b.checkInDate || null,
+      checkOutDate: b.checkOutDate || null,
+      guests: b.guests || 0,
+      totalPrice: (b.pricing && b.pricing.totalAmount) ? b.pricing.totalAmount : (b.totalAmount || 0),
+      bookingStatus: b.status || '',
+      createdAt: b.createdAt || b.created_at || null,
+    }))
+
+    return res.json(mapped)
+  } catch (error) {
+    console.error('[latestBookings] error', error && error.message ? error.message : error)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+}
+
+// Re-export including the new controller
+module.exports = {
+  calculateBookingTotalController,
+  createBookingController,
+  latestBookingsController,
+}

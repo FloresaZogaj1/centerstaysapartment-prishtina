@@ -121,4 +121,4 @@ async function generateAndSendInvoice(booking, payment){
   }
 }
 
-module.exports = { generateAndSendInvoice, renderInvoiceHtml }
+module.exports = { generateAndSendInvoice, renderInvoiceHtml, generateInvoiceNumber }

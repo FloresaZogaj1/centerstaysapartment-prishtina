@@ -15,9 +15,13 @@ try {
 }
 
 const requiredEnv = ['SMTP_HOST','SMTP_PORT','SMTP_USER','SMTP_PASS','EMAIL_FROM']
+const brevoSmtpEnv = ['BREVO_SMTP_HOST','BREVO_SMTP_PORT','BREVO_SMTP_USER','BREVO_SMTP_PASS','BREVO_FROM_EMAIL']
 
 function smtpConfigured() {
-  return requiredEnv.every(k => !!process.env[k])
+  // Accept either generic SMTP_* envs or BREVO_SMTP_* envs as valid SMTP configuration
+  const generic = requiredEnv.every(k => !!process.env[k])
+  const brevo = brevoSmtpEnv.every(k => !!process.env[k])
+  return generic || brevo
 }
 
 function brevoConfigured() {
@@ -26,11 +30,12 @@ function brevoConfigured() {
 
 function createTransporter(){
   if (!smtpConfigured()) return null
+  // Determine SMTP settings: prefer generic SMTP_* envs, otherwise fall back to BREVO_SMTP_* if present
   const secure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true'
-  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST || process.env.MAIL_HOST
-  const port = process.env.SMTP_PORT || process.env.EMAIL_PORT || process.env.MAIL_PORT || 587
-  const user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS
+  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST || process.env.MAIL_HOST || process.env.BREVO_SMTP_HOST
+  const port = process.env.SMTP_PORT || process.env.EMAIL_PORT || process.env.MAIL_PORT || process.env.BREVO_SMTP_PORT || 587
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER || process.env.GMAIL_USER || process.env.BREVO_SMTP_USER
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_PASS || process.env.BREVO_SMTP_PASS
   // Force IPv4 (family: 4) and set tls.servername for SNI when using secure connections
   const transporterOptions = {
     host: host,
@@ -67,7 +72,8 @@ function createTransporter(){
 async function sendMail(opts){
   // If Brevo API key is present, use Brevo REST API instead of SMTP
   if (brevoConfigured()) {
-    return sendEmailWithBrevoApi({ to: opts && opts.to, subject: opts && opts.subject, html: opts && opts.html, text: opts && opts.text })
+    // forward attachments if present
+    return sendEmailWithBrevoApi({ to: opts && opts.to, subject: opts && opts.subject, html: opts && opts.html, text: opts && opts.text, attachments: opts && opts.attachments })
   }
 
   const transporter = createTransporter()
@@ -146,15 +152,37 @@ async function verifyTransporter(){
 async function sendEmailWithBrevoApi({ to, subject, html, text }){
   try {
     console.log('[Email][Brevo API] sending', { to, subject })
+    // Accept attachments array: [{ filename, path, content, contentType }]
     const payload = {
       sender: {
         email: process.env.EMAIL_FROM,
-        name: 'CenterStays Apartments'
+        name: process.env.BREVO_FROM_NAME || 'CenterStays Apartments'
       },
       to: [{ email: to }],
       subject: subject,
       htmlContent: html || text || '',
       textContent: text || ''
+    }
+
+    // handle attachments by reading files and base64-encoding them
+    if (arguments && arguments[0] && arguments[0].attachments && Array.isArray(arguments[0].attachments) && arguments[0].attachments.length) {
+      const atts = []
+      for (const a of arguments[0].attachments) {
+        try {
+          // prefer path, otherwise accept provided content (Buffer or base64)
+          if (a.path) {
+            const fs = require('fs')
+            const buf = fs.readFileSync(a.path)
+            atts.push({ name: a.filename || (a.name || 'attachment.pdf'), content: buf.toString('base64') })
+          } else if (a.content) {
+            const content = Buffer.isBuffer(a.content) ? a.content.toString('base64') : Buffer.from(String(a.content)).toString('base64')
+            atts.push({ name: a.filename || (a.name || 'attachment.pdf'), content })
+          }
+        } catch (e) {
+          console.error('[Email][Brevo API] attachment read failed', { filename: a && a.filename, message: e && e.message })
+        }
+      }
+      if (atts.length) payload.attachment = atts
     }
 
     const resp = await axios.post('https://api.brevo.com/v3/smtp/email', payload, {

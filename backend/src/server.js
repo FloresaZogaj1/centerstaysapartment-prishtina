@@ -70,6 +70,17 @@ app.use('/api/payments', paymentRoutes)
 app.use('/api/payments/bkt', bktPaymentRoutes)
 app.use('/api/admin', adminRoutes)
 
+// Serve generated invoices (PDFs) from /invoices
+try {
+	const path = require('path')
+	const fs = require('fs')
+	const invoicesPath = path.resolve(__dirname, '..', 'invoices')
+	// Ensure folder exists so static server can serve files on first run
+	try { fs.mkdirSync(invoicesPath, { recursive: true }) } catch (e) {}
+	app.use('/invoices', require('express').static(invoicesPath))
+	try { console.log('[BOOT] Invoice static folder mounted at /invoices') } catch (e) {}
+} catch (e) {}
+
 app.get('/health', (req, res) => res.json({ ok: true }))
 
 const PORT = process.env.PORT || 5000
