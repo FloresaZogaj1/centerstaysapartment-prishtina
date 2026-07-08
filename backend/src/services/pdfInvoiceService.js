@@ -44,12 +44,18 @@ async function generateInvoicePdf(booking, payment) {
     const startX = doc.page.margins.left
     let y = 40
 
-    // Header with optional logo
+    // Header with logo and clearer colors
+    const MAIN_TEXT = '#111827'
+    const SECONDARY = '#4B5563'
+    const BOX_BG = '#F8F9FB'
+    const BOX_BG_ALT = '#F3F4F6'
+    const BORDER = '#D1D5DB'
+    const ACCENT = '#C9A75D'
+
     const logoPaths = [
       path.resolve(__dirname, '..', 'assets', 'logo.png'),
       path.resolve(__dirname, '..', '..', 'public', 'logo.png'),
       path.resolve(__dirname, '..', '..', 'public', 'centerstays-logo.png'),
-      // user-provided Instagram image path (safe to try)
       path.resolve(__dirname, '..', '..', 'public', 'Instagram_files', '472018000_1248431362937566_3208334774464705125_n(1).jpg')
     ]
     let usedLogo = null
@@ -57,122 +63,131 @@ async function generateInvoicePdf(booking, payment) {
       try { if (fs.existsSync(p)) { usedLogo = p; break } } catch (e) {}
     }
 
+    // Draw logo or business name
     if (usedLogo) {
-      try {
-        // Draw logo at x:50, y:35, width:100
-        doc.image(usedLogo, 50, 35, { width: 100 })
-      } catch (e) {
-        // fallback to text if image load fails
-        doc.font('Helvetica-Bold').fontSize(18).fillColor('#222').text('CENTERSTAYS APARTMENTS', startX, y)
+      try { doc.image(usedLogo, startX, 30, { width: 110 }) } catch (e) {
+        doc.font('Helvetica-Bold').fontSize(18).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', startX, 36)
       }
     } else {
-      doc.font('Helvetica-Bold').fontSize(18).fillColor('#222').text('CENTERSTAYS APARTMENTS', startX, y)
+      doc.font('Helvetica-Bold').fontSize(18).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', startX, 36)
     }
 
-    doc.font('Helvetica').fontSize(10).fillColor('#666')
-    const headerLeftY = y + 22
+    // Business info under logo
+    doc.font('Helvetica').fontSize(9).fillColor(SECONDARY)
+    const headerLeftY = 60
     doc.text('Prishtina, Kosovo', startX, headerLeftY)
     doc.text('+383 48 110 988')
     doc.text('centerstays@gmail.com')
     doc.text('centerstays.apartments')
 
-    // Right info box
-    const infoBoxWidth = 220
+    // Right-side invoice box (visible border and bg)
+    const infoBoxWidth = 230
     const infoX = doc.page.width - doc.page.margins.right - infoBoxWidth
-    const infoY = y
-    doc.rect(infoX, infoY, infoBoxWidth, 80).fillOpacity(0.03).fillAndStroke('#f0f0f0', '#e0e0e0')
-    doc.fillColor('#000').font('Helvetica-Bold').fontSize(12).text('INVOICE', infoX + 10, infoY + 8)
-    doc.font('Helvetica').fontSize(9).fillColor('#333')
-    const infoLineY = infoY + 28
-    doc.text(`Invoice No: ${safeText(invoiceNumber)}`, infoX + 10, infoLineY)
-    doc.text(`Date: ${safeDate(payment.invoiceSentAt || payment.updatedAt || payment.createdAt)}`, infoX + 10, infoLineY + 14)
-    doc.text(`Status: ${safeText((payment.status || '').toString().toUpperCase() || 'PAID')}`, infoX + 10, infoLineY + 28)
+    const infoY = 30
+    doc.save()
+    doc.rect(infoX, infoY, infoBoxWidth, 110).fillColor(BOX_BG).fill()
+    doc.rect(infoX, infoY, infoBoxWidth, 110).lineWidth(1).strokeColor(BORDER).stroke()
+    doc.fillColor(MAIN_TEXT).font('Helvetica-Bold').fontSize(14).text('INVOICE', infoX + 14, infoY + 8)
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT).text('Invoice No:', infoX + 14, infoY + 34)
+    doc.font('Helvetica').fontSize(10).fillColor(SECONDARY).text(safeText(invoiceNumber), infoX + 100, infoY + 34)
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT).text('Date:', infoX + 14, infoY + 50)
+    doc.font('Helvetica').fontSize(10).fillColor(SECONDARY).text(safeDate(payment.invoiceSentAt || payment.updatedAt || payment.createdAt), infoX + 100, infoY + 50)
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT).text('Status:', infoX + 14, infoY + 66)
+    // PAID badge
+    const paidBadgeX = infoX + 100
+    doc.rect(paidBadgeX, infoY + 62, 70, 18).fillColor(ACCENT).fill()
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#ffffff').text((payment.status || 'PAID').toString().toUpperCase(), paidBadgeX + 8, infoY + 64)
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT).text('Provider:', infoX + 14, infoY + 88)
+    doc.font('Helvetica').fontSize(10).fillColor(SECONDARY).text(safeText(payment.provider), infoX + 100, infoY + 88)
+    doc.restore()
 
-    // small provider info under box
-    doc.fontSize(9).fillColor('#444')
-    doc.text(`Provider: ${safeText(payment.provider)}`, infoX + 10, infoLineY + 44)
-    if (payment.orderId) doc.text(`Order ID: ${safeText(payment.orderId)}`, infoX + 10, infoLineY + 58)
-
-    // Divider
-    y = headerLeftY + 70
-    doc.moveTo(startX, y).lineTo(startX + pageWidth, y).strokeColor('#e0e0e0').lineWidth(1).stroke()
+    // Divider under header
+    y = headerLeftY + 36
+    doc.moveTo(startX, y).lineTo(startX + pageWidth, y).strokeColor(BORDER).lineWidth(1).stroke()
     y += 12
 
-    // Bill To
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#222').text('Bill To:', startX, y)
-    doc.font('Helvetica').fontSize(10).fillColor('#444')
-    const billToY = y + 16
-    const clientName = `${safeText(booking.firstName)} ${safeText(booking.lastName)}`.trim()
-    doc.text(clientName || '-', startX, billToY)
-    doc.text(safeText(booking.email || '-'), startX, billToY + 14)
-    doc.text(safeText(booking.phone || '-'), startX, billToY + 28)
+    // Bill To and Reservation Details side-by-side cards
+    const cardHeight = 110
+    const cardGap = 16
+    const cardWidth = (pageWidth - cardGap) / 2
+    const card1X = startX
+    const card2X = startX + cardWidth + cardGap
 
-    // Reservation details on right side (beside Bill To)
-    const resX = startX + 300
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#222').text('Reservation Details:', resX, y)
-    doc.font('Helvetica').fontSize(10).fillColor('#444')
-    const resY = y + 16
+    // Bill To card
+    doc.rect(card1X, y, cardWidth, cardHeight).fillColor(BOX_BG_ALT).fill()
+    doc.rect(card1X, y, cardWidth, cardHeight).lineWidth(1).strokeColor(BORDER).stroke()
+    doc.font('Helvetica-Bold').fontSize(11).fillColor(MAIN_TEXT).text('Bill To', card1X + 10, y + 8)
+    doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
+    const clientName = `${safeText(booking.firstName)} ${safeText(booking.lastName)}`.trim() || '-'
+    doc.text(clientName, card1X + 10, y + 28)
+    doc.text(safeText(booking.email || '-'), card1X + 10, y + 44)
+    doc.text(safeText(booking.phone || '-'), card1X + 10, y + 60)
+
+    // Reservation Details card
+    doc.rect(card2X, y, cardWidth, cardHeight).fillColor(BOX_BG_ALT).fill()
+    doc.rect(card2X, y, cardWidth, cardHeight).lineWidth(1).strokeColor(BORDER).stroke()
+    doc.font('Helvetica-Bold').fontSize(11).fillColor(MAIN_TEXT).text('Reservation Details', card2X + 10, y + 8)
+    doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
     const roomName = (booking.room && (booking.room.name || booking.room.title)) || booking.roomName || '-'
     const checkIn = booking.checkInDate ? safeDate(booking.checkInDate) : '-'
     const checkOut = booking.checkOutDate ? safeDate(booking.checkOutDate) : '-'
     const nights = booking.nights || (booking.checkInDate && booking.checkOutDate ? Math.max(0, Math.round((new Date(booking.checkOutDate) - new Date(booking.checkInDate)) / 86400000)) : '-')
-    doc.text(`Apartment: ${safeText(roomName)}`, resX, resY)
-    doc.text(`Check-in: ${checkIn}`, resX, resY + 14)
-    doc.text(`Check-out: ${checkOut}`, resX, resY + 28)
-    doc.text(`Nights: ${safeText(nights)}`, resX, resY + 42)
-    doc.text(`Guests: ${safeText(booking.guests)}`, resX, resY + 56)
-    doc.text(`Booking No: ${safeText(booking.bookingNumber || booking._id)}`, resX, resY + 70)
+    doc.text(`Apartment: ${safeText(roomName)}`, card2X + 10, y + 28)
+    doc.text(`Check-in: ${checkIn}`, card2X + 10, y + 44)
+    doc.text(`Check-out: ${checkOut}`, card2X + 10, y + 60)
+    doc.text(`Nights: ${safeText(nights)}  Guests: ${safeText(booking.guests)}`, card2X + 10, y + 76)
 
     // Charges table
-    y = billToY + 80
-    doc.moveTo(startX, y).lineTo(startX + pageWidth, y).strokeColor('#e0e0e0').lineWidth(1).stroke()
-    y += 8
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#222')
-    doc.text('Description', startX + 2, y)
-    doc.text('Details', startX + 220, y)
-    doc.text('Amount', startX + pageWidth - 90, y, { width: 80, align: 'right' })
-    y += 18
-    doc.font('Helvetica').fontSize(10).fillColor('#444')
+    y = y + cardHeight + 20
+    const tableX = startX
+    const tableWidth = pageWidth
+    const col1 = tableX + 10
+    const col2 = tableX + 220
+    const col3 = tableX + tableWidth - 110
 
+    // Table header
+    doc.rect(tableX, y, tableWidth, 24).fillColor(BOX_BG).fill()
+    doc.rect(tableX, y, tableWidth, 24).lineWidth(1).strokeColor(BORDER).stroke()
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(MAIN_TEXT)
+    doc.text('Description', col1, y + 6)
+    doc.text('Details', col2, y + 6)
+    doc.text('Amount', col3, y + 6, { width: 90, align: 'right' })
+
+    // Table row
+    y += 28
+    doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
+    doc.text('Apartment reservation', col1, y)
+    const bookingDates = (checkIn !== '-' || checkOut !== '-') ? `${checkIn} → ${checkOut}` : '-'
+    doc.text(`${safeText(roomName)} ${bookingDates}`, col2, y)
     const amount = payment.amount || (booking.pricing && booking.pricing.totalAmount) || 0
     const currency = payment.currency || (booking.pricing && booking.pricing.currency) || 'EUR'
-    const descX = startX + 2
-    const detailsX = startX + 220
-    const amountX = startX + pageWidth - 90
+    doc.text(`${money(amount)} ${currency}`, col3, y, { width: 90, align: 'right' })
 
-    // Row: Apartment reservation
-    doc.text('Apartment reservation', descX, y)
-    doc.text(safeText(roomName), detailsX, y)
-    doc.text(`${money(amount)} ${currency}`, amountX, y, { width: 80, align: 'right' })
-    y += 18
-
-    // Divider before totals
-    y += 6
-    doc.moveTo(startX, y).lineTo(startX + pageWidth, y).strokeColor('#f0f0f0').lineWidth(1).stroke()
-    y += 12
-
-    // Totals box on right
-    const totalsX = startX + pageWidth - 240
-    doc.font('Helvetica').fontSize(10).fillColor('#444')
-    doc.text('Subtotal:', totalsX, y)
-    doc.text(`${money(amount)} ${currency}`, totalsX + 120, y, { width: 100, align: 'right' })
-    y += 16
-    doc.text('Tax/VAT:', totalsX, y)
-    doc.text('Included', totalsX + 120, y, { width: 100, align: 'right' })
-    y += 16
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#000')
-    doc.text('Total Paid:', totalsX, y)
-    doc.text(`${money(amount)} ${currency}`, totalsX + 120, y, { width: 100, align: 'right' })
+    // Totals box bottom-right
+    y += 36
+    const totalsBoxW = 240
+    const totalsBoxH = 82
+    const totalsX = startX + pageWidth - totalsBoxW
+    doc.rect(totalsX, y, totalsBoxW, totalsBoxH).fillColor(BOX_BG_ALT).fill()
+    doc.rect(totalsX, y, totalsBoxW, totalsBoxH).lineWidth(1).strokeColor(BORDER).stroke()
+    doc.font('Helvetica').fontSize(10).fillColor(SECONDARY)
+    doc.text('Subtotal', totalsX + 12, y + 12)
+    doc.text(`${money(amount)} ${currency}`, totalsX + totalsBoxW - 12, y + 12, { width: 90, align: 'right' })
+    doc.text('Tax/VAT', totalsX + 12, y + 30)
+    doc.text('Included', totalsX + totalsBoxW - 12, y + 30, { width: 90, align: 'right' })
+    doc.font('Helvetica-Bold').fontSize(12).fillColor(MAIN_TEXT)
+    doc.text('Total Paid', totalsX + 12, y + 52)
+    doc.text(`${money(amount)} ${currency}`, totalsX + totalsBoxW - 12, y + 52, { width: 90, align: 'right' })
 
     // Payment confirmation
-    y += 36
-    doc.font('Helvetica').fontSize(10).fillColor('#333')
+    y = y + totalsBoxH + 18
+    doc.font('Helvetica').fontSize(10).fillColor(MAIN_TEXT)
     doc.text('This invoice confirms that the payment for this reservation has been successfully received.', startX, y, { width: pageWidth - 20 })
 
     // Footer
-    doc.fontSize(9).fillColor('#666')
-    doc.text('Thank you for choosing CenterStays Apartments.', startX, doc.page.height - 80)
-    doc.text('This invoice was generated automatically after successful payment.', startX, doc.page.height - 64)
+    doc.fontSize(9).fillColor(SECONDARY)
+    doc.text('Thank you for choosing CenterStays Apartments.', startX, doc.page.height - 70)
+    doc.text('This invoice was generated automatically after successful payment.', startX, doc.page.height - 56)
 
     // End PDF
     doc.end()
