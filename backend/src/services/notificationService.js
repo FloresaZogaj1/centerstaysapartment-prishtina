@@ -100,11 +100,26 @@ async function handlePaymentResultNotification({ paymentId, bookingId, status, r
             await payment.save()
           }
         } catch (e) {
-          adminResult = { ok: false, error: e && e.message ? e.message : String(e) }
-          console.error('[notificationService] failedAdminEmail error', adminResult.error)
-          result.actions.push({ failedAdminEmailSent: false })
-          payment.failedAdminEmailError = payment.failedAdminEmailError || adminResult.error
-          await payment.save()
+              // Use invoiceSenderService to generate PDF and send invoice email to customer
+              // This service is idempotent and will skip sending if already sent
+              try {
+                if (!payment.paidCustomerEmailSentAt) {
+                  const sendRes = await invoiceSenderService.sendInvoiceForPayment(payment, { force: false })
+                  result.actions.push({ invoiceSend: sendRes })
+                  if (sendRes && sendRes.ok) {
+                    // invoiceSenderService updates payment fields (paidCustomerEmailSentAt, invoiceSentAt, invoiceNumber)
+                    await markAndSave('paidCustomerEmailSentAt')
+                  } else {
+                    // record failure info on payment if provided
+                    if (sendRes && sendRes.failure) {
+                      try { payment.paidCustomerEmailError = String(sendRes.failure.error || sendRes.failure.reason || 'send_failed'); await payment.save() } catch (e) {}
+                    }
+                  }
+                } else {
+                  result.actions.push({ invoiceSend: { skipped: true, reason: 'already_sent' } })
+                }
+              } catch (e) { console.error('[notificationService] invoiceSenderService error', e && e.message ? e.message : e); result.actions.push({ invoiceSend: { ok: false } }) }
+
         }
       } else if (payment.failedAdminEmailSentAt) {
         adminResult.ok = true
