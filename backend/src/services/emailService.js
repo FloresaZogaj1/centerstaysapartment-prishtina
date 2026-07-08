@@ -153,15 +153,48 @@ async function sendEmailWithBrevoApi({ to, toName, subject, html, text, attachme
   try {
     console.log('[Email][Brevo API] sending', { to, toName, subject })
     // Accept attachments array: [{ filename, path, content, contentType }]
+    // Helper: simple HTML -> text converter for basic content
+    function htmlToText(htmlStr) {
+      if (!htmlStr) return ''
+      try {
+        // Replace block elements with line breaks, strip tags, decode entities simplistically
+        let s = String(htmlStr)
+        // Normalize <br> and <p> and <li> into line breaks
+        s = s.replace(/<br\s*\/?>/gi, '\n')
+        s = s.replace(/<p[^>]*>/gi, '\n')
+        s = s.replace(/<\/p>/gi, '\n')
+        s = s.replace(/<li[^>]*>/gi, '\n- ')
+        s = s.replace(/<\/li>/gi, '\n')
+        // Remove remaining tags
+        s = s.replace(/<[^>]+>/g, '')
+        // Decode common HTML entities
+        s = s.replace(/&nbsp;/g, ' ')
+        s = s.replace(/&amp;/g, '&')
+        s = s.replace(/&lt;/g, '<')
+        s = s.replace(/&gt;/g, '>')
+        s = s.replace(/&quot;/g, '"')
+        // Collapse multiple newlines/spaces
+        s = s.replace(/\r/g, '\n')
+        s = s.replace(/\n\s+/g, '\n')
+        s = s.replace(/[ \t]+/g, ' ')
+        s = s.replace(/\n{3,}/g, '\n\n')
+        return s.trim()
+      } catch (e) {
+        return String(htmlStr)
+      }
+    }
+
     const payload = {
       sender: {
-        email: process.env.EMAIL_FROM,
-        name: process.env.BREVO_FROM_NAME || 'CenterStays Apartments'
+        // Use EMAIL_FROM when available, otherwise fall back to BREVO_FROM_EMAIL
+        email: process.env.EMAIL_FROM || process.env.BREVO_FROM_EMAIL,
+        name: process.env.BREVO_FROM_NAME || 'CenterStays Apartments Prishtina'
       },
       to: [{ email: to, name: toName || undefined }],
       subject: subject,
       htmlContent: html || text || '',
-      textContent: text || ''
+      // Brevo requires textContent in your account configuration — ensure a plain-text alternative
+      textContent: (text && String(text)) || htmlToText(html)
     }
 
     // handle attachments by reading files and base64-encoding them

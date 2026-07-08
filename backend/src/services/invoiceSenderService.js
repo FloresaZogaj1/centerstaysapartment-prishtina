@@ -31,7 +31,7 @@ async function sendInvoiceForPayment(payment, { force = false } = {}) {
   // Prepare email body
     const customerName = `${booking.firstName || ''} ${booking.lastName || ''}`.trim()
     const subject = 'Invoice for your Center Stay Apartments reservation'
-    const html = `
+  const html = `
       <p>Hello ${customerName || 'Guest'},</p>
       <p>Thank you for your reservation at Center Stay Apartments Prishtina.</p>
       <p>Your payment has been received successfully. Attached you can find your invoice PDF.</p>
@@ -46,6 +46,9 @@ async function sendInvoiceForPayment(payment, { force = false } = {}) {
       </ul>
       <p>Best regards,<br/>Center Stay Apartments Prishtina</p>
     `
+
+  // Generate plain-text fallback for Brevo's textContent requirement
+  const text = `Hello ${customerName || 'Guest'},\n\nThank you for your reservation at CenterStays Apartments Prishtina.\n\nYour payment has been received successfully. Attached you can find your invoice PDF.\n\nReservation details:\nApartment: ${(booking.room && (booking.room.name || booking.room.title)) || booking.roomName || 'N/A'}\nCheck-in: ${booking.checkInDate ? (new Date(booking.checkInDate)).toLocaleDateString() : ''}\nCheck-out: ${booking.checkOutDate ? (new Date(booking.checkOutDate)).toLocaleDateString() : ''}\nGuests: ${booking.guests || ''}\nAmount paid: ${Number(payment.amount || booking.pricing?.totalAmount || 0).toFixed(2)} ${payment.currency || booking.pricing?.currency || 'EUR'}\nOrder ID: ${payment.orderId || payment.providerOrderId || ''}\n\nBest regards,\nCenterStays Apartments Prishtina`
 
     // Attach PDF and verify file exists
     const fs = require('fs')
@@ -64,7 +67,7 @@ async function sendInvoiceForPayment(payment, { force = false } = {}) {
     if (!to || !emailRegex.test(to)) return { ok: false, reason: 'invalid_customer_email' }
 
     // Send email using emailService.sendMail which prefers Brevo when configured
-    const sendResult = await emailService.sendMail({ from: process.env.EMAIL_FROM, to, toName: `${booking.firstName || ''} ${booking.lastName || ''}`.trim(), subject, html, attachments })
+  const sendResult = await emailService.sendMail({ from: process.env.EMAIL_FROM, to, toName: `${booking.firstName || ''} ${booking.lastName || ''}`.trim(), subject, html, text, attachments })
 
   if (!sendResult || !sendResult.ok) {
       // Persist error info to payment
