@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { useBooking } from './BookingProvider'
 
 export default function Footer() {
@@ -18,6 +19,8 @@ export default function Footer() {
               <li><a href="#dhomat" className="hover:text-brand">Dhomat</a></li>
               <li><a href="#sherbimet" className="hover:text-brand">Shërbimet</a></li>
               <li><a href="#kontakti" className="hover:text-brand">Kontakti</a></li>
+              <li><Link to="/terms" className="hover:text-brand">Terms & Conditions</Link></li>
+              <li><Link to="/privacy" className="hover:text-brand">Privacy & Cookies</Link></li>
             </ul>
           </div>
 
@@ -35,7 +38,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-6 text-center text-sm text-gray-500">
-          © 2026 CenterStays Apartments. All rights reserved.
+          © 2026 CenterStays Apartments. All rights reserved. — <Link to="/terms" className="underline">Terms</Link> • <Link to="/privacy" className="underline">Privacy</Link>
         </div>
       </div>
     </footer>

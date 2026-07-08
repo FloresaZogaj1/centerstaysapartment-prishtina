@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+// Use direct hash anchors for Terms/Privacy when opening in a new tab to avoid losing booking progress
 import { calculateBookingTotal, createBooking, createBktPayment, createBankartPayment } from '../api/bookingApi'
 import submitPaymentForm from '../utils/submitPaymentForm'
 
@@ -278,7 +279,7 @@ export default function BookingFormV2({ selectedRoom, onClose, termsAccepted, se
         <div className="mt-3">
           <label className="flex items-start gap-3">
             <input type="checkbox" checked={termsAccepted} onChange={(e) => { setTermsAccepted(e.target.checked); if (e.target.checked) setTermsError('') }} />
-            <span className="text-sm">I accept the <a href="/terms" className="text-blue-600 underline">Terms and Conditions</a> and <a href="/privacy" className="text-blue-600 underline">Privacy Policy</a>.</span>
+            <span className="text-sm">I accept the <a href="/#/terms" target="_blank" rel="noreferrer" className="text-blue-600 underline">Terms and Conditions</a> and <a href="/#/privacy" target="_blank" rel="noreferrer" className="text-blue-600 underline">Privacy Policy</a>.</span>
           </label>
           {termsError && <div className="text-sm text-red-600 mt-1">{termsError}</div>}
         </div>

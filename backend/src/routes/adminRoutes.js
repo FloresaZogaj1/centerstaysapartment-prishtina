@@ -195,9 +195,11 @@ router.post('/payments/:paymentId/send-invoice', async (req, res) => {
     // If already sent and not forced, skip
     if (payment.paidCustomerEmailSentAt && !force) return res.json({ ok: true, skipped: true, reason: 'already_sent' })
 
-    const result = await invoiceSenderService.sendInvoiceForPayment(payment, { force })
-    if (result && result.ok) return res.json({ ok: true, sentAt: result.sentAt })
-    return res.status(500).json({ ok: false, error: result && result.error ? result.error : result && result.reason ? result.reason : 'failed' })
+  const result = await invoiceSenderService.sendInvoiceForPayment(payment, { force })
+  if (result && result.ok) return res.json({ ok: true, sentAt: result.sentAt })
+  // If service included structured failure info, expose it to admin response
+  if (result && result.failure) return res.status(500).json({ ok: false, failure: result.failure })
+  return res.status(500).json({ ok: false, error: result && result.error ? result.error : result && result.reason ? result.reason : 'failed' })
   } catch (err) {
     console.error('[admin/payments/:paymentId/send-invoice] error', err && err.message ? err.message : err)
     return res.status(500).json({ message: 'Internal server error' })

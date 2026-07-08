@@ -14,6 +14,8 @@ import Kontakti from './pages/Kontakti'
 import PaymentSuccess from './pages/PaymentSuccess'
 import PaymentFail from './pages/PaymentFail'
 import PaymentCancel from './pages/PaymentCancel'
+import Terms from './pages/Terms'
+import Privacy from './pages/Privacy'
 
 export default function App() {
   return (
@@ -29,6 +31,8 @@ export default function App() {
               <Route path="/dhomat" element={<Dhomat />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/kontakti" element={<Kontakti />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
               <Route path="/payment/success" element={<PaymentSuccess />} />
               <Route path="/payment/fail" element={<PaymentFail />} />
               <Route path="/payment/cancel" element={<PaymentCancel />} />

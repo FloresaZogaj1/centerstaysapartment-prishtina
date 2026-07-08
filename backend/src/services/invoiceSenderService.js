@@ -56,11 +56,13 @@ async function sendInvoiceForPayment(payment, { force = false } = {}) {
       }
     ]
 
-    // Send email using emailService.sendMail which prefers Brevo when configured
+    // Validate customer email presence
     const to = booking.email
     if (!to) return { ok: false, reason: 'missing_customer_email' }
 
-    const sendResult = await emailService.sendMail({ from: process.env.EMAIL_FROM, to, subject, html, attachments })
+    // Send email using emailService.sendMail which prefers Brevo when configured
+    const sendResult = await emailService.sendMail({ from: process.env.EMAIL_FROM, to, toName: `${booking.firstName || ''} ${booking.lastName || ''}`.trim(), subject, html, attachments })
+
     if (!sendResult || !sendResult.ok) {
       // Persist error info to payment
       try {
@@ -70,7 +72,21 @@ async function sendInvoiceForPayment(payment, { force = false } = {}) {
         await full.save()
       } catch (e) {}
 
-      return { ok: false, reason: 'send_failed', error: sendResult && sendResult.error }
+      // Prepare detailed failure info when Brevo returns structured error
+      const failure = { id: full._id, error: sendResult && sendResult.error ? String(sendResult.error) : 'send_failed' }
+      if (sendResult && sendResult.statusCode) failure.statusCode = sendResult.statusCode
+      if (sendResult && sendResult.brevoError) failure.brevoError = sendResult.brevoError
+      // Attach attachment info if available
+      try {
+        const fs = require('fs')
+        if (attachments && attachments[0] && attachments[0].path && fs.existsSync(attachments[0].path)) {
+          const st = fs.statSync(attachments[0].path)
+          failure.attachment = { filename: attachments[0].filename, size: st.size }
+          console.error('[invoiceSenderService] Brevo send failed for', { to, from: process.env.EMAIL_FROM, filename: attachments[0].filename, size: st.size })
+        }
+      } catch (e) {}
+
+      return { ok: false, reason: 'send_failed', failure }
     }
 
     // Mark as sent
@@ -118,7 +134,9 @@ async function sendInvoicesForPayments(payments, { force = false } = {}) {
       if (r && r.ok) results.sent++
       else {
         results.failed++
-        results.failedItems.push({ id: paymentDoc._id, error: r && r.error ? r.error : r && r.reason ? r.reason : 'unknown' })
+        // r may contain a structured failure under r.failure
+        if (r && r.failure) results.failedItems.push({ id: paymentDoc._id, ...r.failure })
+        else results.failedItems.push({ id: paymentDoc._id, error: r && r.error ? r.error : r && r.reason ? r.reason : 'unknown' })
       }
     } catch (e) {
       results.failed++
