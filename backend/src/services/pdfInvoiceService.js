@@ -86,11 +86,11 @@ async function generateInvoicePdf(booking, payment) {
     }
 
     // Draw logo (left) and business text (to the right) with precise coordinates
-    const logoX = 45
-    const logoY = 35
-    const logoW = 85
-    const businessTextX = 145
-    const businessTextY = 38
+  const logoX = 50
+  const logoY = 65
+  const logoW = 70
+  const businessTextX = 155
+  const businessTextY = 45
 
     if (usedLogo) {
       try {
@@ -104,12 +104,13 @@ async function generateInvoicePdf(booking, payment) {
     }
 
     // Business info to the right of the logo
-    doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', businessTextX, businessTextY)
-    doc.font('Helvetica').fontSize(9).fillColor(SECONDARY)
-    doc.text('Prishtina, Kosovo', businessTextX, businessTextY + 22)
-    doc.text('+383 48 110 988', businessTextX, businessTextY + 36)
-    doc.text('centerstays@gmail.com', businessTextX, businessTextY + 50)
-    doc.text('centerstays.apartments', businessTextX, businessTextY + 64)
+  doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', businessTextX, businessTextY)
+  doc.font('Helvetica').fontSize(9).fillColor(SECONDARY)
+  // Business details positioned further right and lower to avoid touching the logo
+  doc.text('Prishtina, Kosovo', businessTextX, 76)
+  doc.text('+383 48 110 988', businessTextX, 92)
+  doc.text('centerstays@gmail.com', businessTextX, 108)
+  doc.text('centerstays.apartments', businessTextX, 124)
 
     // Right-side invoice box at requested coordinates
     const infoBoxX = 365
