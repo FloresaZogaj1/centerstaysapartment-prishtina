@@ -85,32 +85,33 @@ async function generateInvoicePdf(booking, payment) {
       try { if (fs.existsSync(p)) { usedLogo = p; break } } catch (e) {}
     }
 
-    // Draw logo (left) and business text (to the right) with precise coordinates
-  const logoX = 50
-  const logoY = 65
-  const logoW = 70
-  const businessTextX = 155
-  const businessTextY = 45
+    // Draw logo at top-left and place business title/details below the logo
+    const logoX = 45
+    const logoY = 45
+    const logoW = 85
+    const businessTitleX = 45
+    const businessTitleY = 115
+    const businessDetailsX = 45
+    const businessDetailsY = 140
 
     if (usedLogo) {
       try {
         doc.image(usedLogo, logoX, logoY, { width: logoW })
       } catch (e) {
-        // fall back to text if image cannot be rendered
-        doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', logoX, logoY)
+        // if image fails, fall back to text title below where the logo would be
+        doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', businessTitleX, businessTitleY)
       }
     } else {
-      doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', logoX, logoY)
+      // No logo: render the business title in the title position
+      doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', businessTitleX, businessTitleY)
     }
 
-    // Business info to the right of the logo
-  doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', businessTextX, businessTextY)
-  doc.font('Helvetica').fontSize(9).fillColor(SECONDARY)
-  // Business details positioned further right and lower to avoid touching the logo
-  doc.text('Prishtina, Kosovo', businessTextX, 76)
-  doc.text('+383 48 110 988', businessTextX, 92)
-  doc.text('centerstays@gmail.com', businessTextX, 108)
-  doc.text('centerstays.apartments', businessTextX, 124)
+    // Business info placed clearly below the logo to guarantee no overlap
+    doc.font('Helvetica').fontSize(9).fillColor(SECONDARY)
+    doc.text('Prishtina, Kosovo', businessDetailsX, businessDetailsY)
+    doc.text('+383 48 110 988', businessDetailsX, businessDetailsY + 16)
+    doc.text('centerstays@gmail.com', businessDetailsX, businessDetailsY + 32)
+    doc.text('centerstays.apartments', businessDetailsX, businessDetailsY + 48)
 
     // Right-side invoice box at requested coordinates
     const infoBoxX = 365
