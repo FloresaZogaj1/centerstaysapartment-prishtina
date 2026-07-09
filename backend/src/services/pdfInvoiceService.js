@@ -85,39 +85,52 @@ async function generateInvoicePdf(booking, payment) {
       try { if (fs.existsSync(p)) { usedLogo = p; break } } catch (e) {}
     }
 
-    // Draw logo at top-left and place business title/details below the logo
+    // Safer header layout: logo at top-left, title to the right with max width, details below
     const logoX = 45
-    const logoY = 45
-    const logoW = 85
-    const businessTitleX = 45
-    const businessTitleY = 115
-    const businessDetailsX = 45
-    const businessDetailsY = 140
+    const logoY = 82
+    const logoW = 70
+    const businessTitleX = 145
+    const businessTitleY = 55
+    const businessDetailsX = 145
+    const businessDetailsY = 82
 
+    // Draw logo
     if (usedLogo) {
       try {
         doc.image(usedLogo, logoX, logoY, { width: logoW })
       } catch (e) {
-        // if image fails, fall back to text title below where the logo would be
-        doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', businessTitleX, businessTitleY)
+        // fall back - will render title below
       }
-    } else {
-      // No logo: render the business title in the title position
-      doc.font('Helvetica-Bold').fontSize(16).fillColor(MAIN_TEXT).text('CENTERSTAYS APARTMENTS', businessTitleX, businessTitleY)
     }
 
-    // Business info placed clearly below the logo to guarantee no overlap
-    doc.font('Helvetica').fontSize(9).fillColor(SECONDARY)
-    doc.text('Prishtina, Kosovo', businessDetailsX, businessDetailsY)
-    doc.text('+383 48 110 988', businessDetailsX, businessDetailsY + 16)
-    doc.text('centerstays@gmail.com', businessDetailsX, businessDetailsY + 32)
-    doc.text('centerstays.apartments', businessDetailsX, businessDetailsY + 48)
+    // Title: smaller font and constrained width so it cannot go under the invoice box
+    const title = 'CENTERSTAYS APARTMENTS'
+    let titleFontSize = 14
+    doc.font('Helvetica-Bold').fontSize(titleFontSize)
+    const maxTitleWidth = 240 // ensures title stays left of invoice box (145 + 240 = 385)
+    // Measure and reduce font if necessary
+    try {
+      const measured = doc.widthOfString(title)
+      if (measured > maxTitleWidth) {
+        titleFontSize = 13
+        doc.fontSize(titleFontSize)
+      }
+    } catch (e) {}
+    // Draw title with width constraint
+    doc.fillColor(MAIN_TEXT).font('Helvetica-Bold').fontSize(titleFontSize).text(title, businessTitleX, businessTitleY, { width: maxTitleWidth })
 
-    // Right-side invoice box at requested coordinates
-    const infoBoxX = 365
-    const infoBoxY = 35
-    let infoBoxW = 185
-    const infoBoxH = 125
+    // Business details: small font, placed under the title area, constrained to same width
+    doc.font('Helvetica').fontSize(8).fillColor(SECONDARY)
+    doc.text('Prishtina, Kosovo', businessDetailsX, businessDetailsY, { width: maxTitleWidth })
+    doc.text('+383 48 110 988', businessDetailsX, businessDetailsY + 12, { width: maxTitleWidth })
+    doc.text('centerstays@gmail.com', businessDetailsX, businessDetailsY + 24, { width: maxTitleWidth })
+    doc.text('centerstays.apartments', businessDetailsX, businessDetailsY + 36, { width: maxTitleWidth })
+
+  // Right-side invoice box: place at safer x to avoid overlapping title
+  const infoBoxX = 405
+  const infoBoxY = 45
+  let infoBoxW = 145
+  const infoBoxH = 125
 
     // keep inside printable area
     if (infoBoxX + infoBoxW > 550) infoBoxW = 550 - infoBoxX
@@ -160,7 +173,7 @@ async function generateInvoicePdf(booking, payment) {
 
   // Header divider removed to avoid crossing the logo/business details
   // (kept intentionally empty here — no replacement line)
-  const headerBottomY = (typeof businessTextY !== 'undefined') ? businessTextY + 36 : (logoY + 36)
+  const headerBottomY = (typeof businessDetailsY !== 'undefined') ? businessDetailsY + 36 : (logoY + 36)
   y = headerBottomY
 
   // Bill To and Reservation Details side-by-side cards at requested Y ~165
