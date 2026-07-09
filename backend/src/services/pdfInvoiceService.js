@@ -116,8 +116,7 @@ async function generateInvoicePdf(booking, payment) {
         doc.fontSize(titleFontSize)
       }
     } catch (e) {}
-    // Draw title with width constraint
-    doc.fillColor(MAIN_TEXT).font('Helvetica-Bold').fontSize(titleFontSize).text(title, businessTitleX, businessTitleY, { width: maxTitleWidth })
+  // Title removed by request; keep only logo + contact details
 
     // Business details: small font, placed under the title area, constrained to same width
     doc.font('Helvetica').fontSize(8).fillColor(SECONDARY)
